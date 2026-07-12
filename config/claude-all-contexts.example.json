@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "models": {
+    "claude-sonnet-4-5-20250929": { "contextTokens": 1000000, "compactAtTokens": 660000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "claude-sonnet-4-6": { "contextTokens": 1000000, "compactAtTokens": 660000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "claude-opus-4-6": { "contextTokens": 1000000, "compactAtTokens": 660000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "claude-opus-4-6-thinking": { "contextTokens": 1000000, "compactAtTokens": 660000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "claude-opus-4-7": { "contextTokens": 1000000, "compactAtTokens": 660000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "claude-opus-4-8": { "contextTokens": 1000000, "compactAtTokens": 660000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "claude-sonnet-5": { "contextTokens": 1000000, "compactAtTokens": 660000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "claude-fable-5": { "contextTokens": 1000000, "compactAtTokens": 660000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "claude-opus-4-5-20251101": { "contextTokens": 1000000, "compactAtTokens": 660000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "claude-opus-4-1-20250805": { "contextTokens": 1000000, "compactAtTokens": 660000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "claude-opus-4-20250514": { "contextTokens": 1000000, "compactAtTokens": 660000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "claude-sonnet-4-20250514": { "contextTokens": 1000000, "compactAtTokens": 660000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "claude-3-7-sonnet-20250219": { "contextTokens": 1000000, "compactAtTokens": 660000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "gpt-5.6-sol": { "contextTokens": 372000, "compactAtTokens": 300000, "status": "route-validated", "source": "codex-client-models" },
+    "gpt-5.6-terra": { "contextTokens": 372000, "compactAtTokens": 300000, "status": "route-validated", "source": "codex-client-models" },
+    "gpt-5.6-luna": { "contextTokens": 372000, "compactAtTokens": 300000, "status": "route-validated", "source": "codex-client-models" },
+    "grok-4.5": { "contextTokens": 500000, "compactAtTokens": 420000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "kimi-k2.7-code": { "contextTokens": 262144, "compactAtTokens": 210000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "gemini-3-flash-agent": { "contextTokens": 1048576, "compactAtTokens": 950000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "grok-composer-2.5-fast": { "contextTokens": 200000, "compactAtTokens": 160000, "status": "route-validated", "source": "cliproxyapi-registry" }
+  }
+}

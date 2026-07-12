@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+import { loadContextEnvironment } from "../src/context-map.mjs";
+
+const path = process.argv[2];
+if (!path) {
+  console.error("usage: prepare-claude-context-env <context-map.json>");
+  process.exit(2);
+}
+
+try {
+  const { environment, warnings } = loadContextEnvironment(path);
+  for (const warning of warnings) console.error(`claude-all: ${warning}`);
+  console.log("CLAUDE_ALL_CONTEXT_PATCH=1");
+  for (const [name, value] of environment) console.log(`${name}=${value}`);
+} catch (error) {
+  console.error(`claude-all: invalid context map: ${error.message}`);
+  process.exit(1);
+}

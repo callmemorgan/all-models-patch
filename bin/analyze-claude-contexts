@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+import { analyzeClaudeBinary } from "../src/claude-context-analyzer.mjs";
+
+const args = process.argv.slice(2);
+const path = args.find((arg) => !arg.startsWith("--")) ?? `${process.env.HOME}/.local/share/claude-stable/current/claude`;
+const versionFlag = args.find((arg) => arg.startsWith("--version="));
+const version = versionFlag?.slice("--version=".length) ?? "2.1.197";
+
+try {
+  const result = analyzeClaudeBinary(path, { version });
+  console.log(JSON.stringify({ status: "verified", ...result }, null, 2));
+} catch (error) {
+  console.error(`analyze-claude-contexts: ${error.message}`);
+  process.exitCode = 1;
+}

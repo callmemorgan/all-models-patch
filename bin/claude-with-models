@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+workspace="$PWD"
+runtime_dir="$(mktemp -d "${TMPDIR:-/tmp}/ccmb.XXXXXX")"
+ready_file="$runtime_dir/ready.json"
+
+if ! command -v claude >/dev/null 2>&1; then
+  echo "Claude Code is not on PATH." >&2
+  exit 1
+fi
+if ! command -v codex >/dev/null 2>&1; then
+  echo "Codex is not on PATH. Log in with Codex first." >&2
+  exit 1
+fi
+
+if [[ -z "${KIMI_CODE_API_KEY:-}" ]] && command -v security >/dev/null 2>&1; then
+  KIMI_CODE_API_KEY="$(security find-generic-password -a "$USER" -s "Claude Code Model Bridge Kimi Code" -w 2>/dev/null || true)"
+fi
+
+CCMB_WORKSPACE="$workspace" CCMB_PORT=0 CCMB_READY_FILE="$ready_file" KIMI_CODE_API_KEY="$KIMI_CODE_API_KEY" node "$root/src/server.mjs" &
+bridge_pid=$!
+
+cleanup() {
+  kill "$bridge_pid" 2>/dev/null || true
+  wait "$bridge_pid" 2>/dev/null || true
+  rm -rf "$runtime_dir"
+}
+trap cleanup EXIT INT TERM
+
+for _ in {1..50}; do
+  if [[ -s "$ready_file" ]]; then
+    break
+  fi
+  sleep 0.1
+done
+
+if ! kill -0 "$bridge_pid" 2>/dev/null; then
+  echo "The local model bridge did not start." >&2
+  exit 1
+fi
+if [[ ! -s "$ready_file" ]]; then
+  echo "The local model bridge did not become ready." >&2
+  exit 1
+fi
+
+port="$(node --input-type=module -e 'import { readFileSync } from "node:fs"; process.stdout.write(String(JSON.parse(readFileSync(process.argv[1], "utf8")).port));' "$ready_file")"
+
+export ANTHROPIC_BASE_URL="http://127.0.0.1:$port"
+export CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1
+claude "$@"

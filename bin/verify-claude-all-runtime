@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { analyzeClaudeBinary } from "../src/claude-context-analyzer.mjs";
+import { fileSha256, verifyPatchedBytes } from "../src/claude-context-patcher.mjs";
+
+const root = `${process.env.HOME}/.local/share/claude-all/current`;
+const runtime = join(root, "claude");
+const manifestPath = join(root, "manifest.json");
+
+try {
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  const stock = `${process.env.HOME}/.local/share/claude-stable/current/claude`;
+  const analysis = analyzeClaudeBinary(stock, { version: manifest.claudeVersion });
+  if (analysis.sha256 !== manifest.stockSha256) throw new Error("stock runtime changed");
+  if (fileSha256(runtime) !== manifest.patchedSha256) throw new Error("patched runtime hash mismatch");
+  verifyPatchedBytes(runtime);
+  process.stdout.write(runtime);
+} catch (error) {
+  console.error(`claude-all: patched runtime verification failed: ${error.message}`);
+  console.error("Run: patch-claude-all-contexts build");
+  process.exit(1);
+}

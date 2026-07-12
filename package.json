@@ -1,0 +1,19 @@
+{
+  "name": "claude-code-model-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A local, credential-isolating model gateway for Claude Code.",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "check": "node --check src/*.mjs && node --check test/*.mjs && node --check bin/claude-all-usage && zsh -n bin/claude-all && node -e \"JSON.parse(require('fs').readFileSync('plugin/.claude-plugin/plugin.json'))\"",
+    "analyze": "bin/analyze-claude-contexts",
+    "patch:analyze": "bin/patch-claude-all-contexts analyze",
+    "patch:build": "bin/patch-claude-all-contexts build",
+    "patch:verify": "bin/patch-claude-all-contexts verify",
+    "test": "node --test test/*.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

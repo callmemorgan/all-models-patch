@@ -1,0 +1,5 @@
+{
+  "name": "claude-all-swarm",
+  "version": "0.1.0",
+  "description": "Kimi-inspired one-shot swarm orchestration for claude-all"
+}

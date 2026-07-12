@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v security >/dev/null 2>&1; then
+  echo "This helper uses the macOS Keychain and must run on macOS." >&2
+  exit 1
+fi
+
+read -r -s "?Paste a Kimi Code API key (input is hidden): " key
+echo
+if [[ -z "$key" ]]; then
+  echo "No key supplied." >&2
+  exit 1
+fi
+
+security add-generic-password -a "$USER" -s "Claude Code Model Bridge Kimi Code" -w "$key" -U
+unset key
+echo "Kimi Code API key stored in your login Keychain."

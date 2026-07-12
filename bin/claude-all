@@ -1,0 +1,49 @@
+#!/bin/zsh
+set -eu
+
+readonly key_file="$HOME/.cli-proxy-api/client-key"
+readonly agents_file="$HOME/.cli-proxy-api/claude-all-agents.json"
+readonly context_map="$HOME/.cli-proxy-api/claude-all-contexts.json"
+readonly verify_runtime="$HOME/.local/bin/verify-claude-all-runtime"
+readonly prepare_context="$HOME/.local/bin/prepare-claude-context-env"
+readonly swarm_plugin="/Users/morgan/personal/claude-code-model-bridge/plugin"
+
+if [[ ! -r "$key_file" ]]; then
+  print -u2 "claude-all: missing proxy credential: $key_file"
+  print -u2 "Run the CLIProxyAPI setup/login process first."
+  exit 1
+fi
+
+if [[ ! -r "$agents_file" ]]; then
+  print -u2 "claude-all: missing agent bundle: $agents_file"
+  exit 1
+fi
+
+if [[ ! -r "$context_map" ]]; then
+  print -u2 "claude-all: missing context map: $context_map"
+  exit 1
+fi
+
+if [[ ! -x "$verify_runtime" || ! -x "$prepare_context" ]]; then
+  print -u2 "claude-all: runtime verification helpers are not installed"
+  exit 1
+fi
+
+if [[ ! -r "$swarm_plugin/.claude-plugin/plugin.json" || ! -r "$swarm_plugin/commands/swarm.md" ]]; then
+  print -u2 "claude-all: swarm plugin is missing: $swarm_plugin"
+  exit 1
+fi
+
+runtime="$($verify_runtime)"
+context_env=("${(@f)$($prepare_context "$context_map")}")
+
+export DISABLE_UPDATES=1
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8317"
+export ANTHROPIC_AUTH_TOKEN="$(<"$key_file")"
+export CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+
+exec env "${context_env[@]}" "$runtime" \
+  --plugin-dir "$swarm_plugin" \
+  --agents "$(command cat -- "$agents_file")" \
+  "$@"

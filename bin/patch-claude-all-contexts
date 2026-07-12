@@ -1,0 +1,75 @@
+#!/usr/bin/env node
+import { execFileSync } from "node:child_process";
+import { mkdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { analyzeClaudeBinary } from "../src/claude-context-analyzer.mjs";
+import { fileSha256, patchClaudeBinary, verifyPatchedBytes } from "../src/claude-context-patcher.mjs";
+
+const mode = process.argv[2] ?? "analyze";
+const version = process.env.CLAUDE_ALL_STABLE_VERSION ?? "2.1.197";
+const source = process.env.CLAUDE_ALL_STABLE_BINARY ?? `${process.env.HOME}/.local/share/claude-stable/current/claude`;
+const root = process.env.CLAUDE_ALL_RUNTIME_ROOT ?? `${process.env.HOME}/.local/share/claude-all`;
+const versionDirectory = join(root, "versions", version);
+const target = join(versionDirectory, "claude");
+const manifestPath = join(versionDirectory, "manifest.json");
+
+try {
+  if (mode === "analyze") analyze();
+  else if (mode === "build") build();
+  else if (mode === "verify") verify();
+  else throw new Error(`unknown mode: ${mode}`);
+} catch (error) {
+  console.error(`patch-claude-all-contexts: ${error.message}`);
+  process.exitCode = 1;
+}
+
+function analyze() {
+  console.log(JSON.stringify({ status: "verified", ...analyzeClaudeBinary(source, { version }) }, null, 2));
+}
+
+function build() {
+  mkdirSync(versionDirectory, { recursive: true, mode: 0o700 });
+  const temporary = join(versionDirectory, `.claude.tmp-${process.pid}`);
+  rmSync(temporary, { force: true });
+  try {
+    const patch = patchClaudeBinary({ source, target: temporary, version });
+    verifyPatchedBytes(temporary);
+    execFileSync("codesign", ["--force", "--sign", "-", temporary], { stdio: "inherit" });
+    execFileSync("codesign", ["--verify", "--deep", "--strict", temporary], { stdio: "inherit" });
+    execFileSync(temporary, ["--version"], { stdio: "pipe", env: { ...process.env, DISABLE_UPDATES: "1" } });
+    renameSync(temporary, target);
+    const manifest = {
+      schemaVersion: 1,
+      claudeVersion: version,
+      architecture: patch.analysis.architecture,
+      stockSha256: patch.analysis.sha256,
+      patchedSha256: fileSha256(target),
+      unsignedPatchedSha256: patch.unsignedPatchedSha256,
+      patcherVersion: patch.patcherVersion,
+      contextMapSchema: patch.contextMapSchema,
+      contextResolverOffset: patch.analysis.contextResolverOffset,
+      compactResolverOffset: patch.analysis.compactResolverOffset,
+      builtAt: new Date().toISOString(),
+    };
+    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600 });
+    verify();
+    const nextLink = join(root, `.current-${process.pid}`);
+    rmSync(nextLink, { force: true });
+    symlinkSync(versionDirectory, nextLink);
+    renameSync(nextLink, join(root, "current"));
+    console.log(`promoted Claude Code ${version} patched runtime`);
+  } finally {
+    rmSync(temporary, { force: true });
+  }
+}
+
+function verify() {
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  if (manifest.schemaVersion !== 1 || manifest.claudeVersion !== version) throw new Error("manifest version mismatch");
+  const stock = analyzeClaudeBinary(source, { version });
+  if (stock.sha256 !== manifest.stockSha256) throw new Error("stock binary hash no longer matches manifest");
+  if (fileSha256(target) !== manifest.patchedSha256) throw new Error("patched binary hash mismatch");
+  verifyPatchedBytes(target);
+  execFileSync("codesign", ["--verify", "--deep", "--strict", target], { stdio: "inherit" });
+  console.log(JSON.stringify({ status: "verified", runtime: target, manifest: manifestPath, patchedSha256: manifest.patchedSha256 }, null, 2));
+}

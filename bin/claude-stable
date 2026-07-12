@@ -1,0 +1,16 @@
+#!/bin/zsh
+set -eu
+
+readonly runtime="$HOME/.local/share/claude-stable/current/claude"
+
+if [[ ! -x "$runtime" ]]; then
+  print -u2 "claude-stable: missing stable runtime: $runtime"
+  print -u2 "Reinstall or refresh the stable Claude Code runtime first."
+  exit 1
+fi
+
+# A pinned side-by-side runtime must never update the canonical `claude`
+# installation. Stable upgrades are installed and promoted explicitly.
+export DISABLE_UPDATES=1
+
+exec "$runtime" "$@"
