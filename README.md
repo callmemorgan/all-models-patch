@@ -63,6 +63,22 @@ The status-line segments `usage-codex`, `usage-grok`, `usage-agy`, and
 minute old, the next render starts one detached `claude-all-usage` process and
 continues displaying stale data; the following render sees the atomic update.
 
+### Ollama Cloud models
+
+The local CLIProxyAPI configuration can route Ollama's OpenAI-compatible API at
+`http://127.0.0.1:11434/v1`. The current roster exposes
+`minimax-m3:cloud` as `minimax-m3` and `glm-5.2:cloud` as `glm-5.2`, with
+matching `minimax-m3` and `glm-5-2` agent types. Ollama must be running and the
+cloud manifests must be installed with `ollama pull` before those routes work.
+The proxy entry uses the non-secret placeholder key `ollama-local`; Ollama
+ignores its bearer value, but the installed proxy build requires a compatibility
+credential entry to register the provider.
+
+Context and compaction limits follow the Ollama manifests used by this route:
+MiniMax M3 uses 524,288 tokens and compacts at 471,859; GLM-5.2 uses 1,000,000
+tokens and compacts at 900,000. These values deliberately do not assume that a
+provider's native API limit is available through Ollama.
+
 ### Swarm mode
 
 `claude-all` uses its own Claude Code profile at `~/.claude-all` via
