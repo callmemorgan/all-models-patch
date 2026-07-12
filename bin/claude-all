@@ -2,6 +2,7 @@
 set -eu
 
 readonly key_file="$HOME/.cli-proxy-api/client-key"
+readonly claude_config_dir="$HOME/.claude-all"
 readonly agents_file="$HOME/.cli-proxy-api/claude-all-agents.json"
 readonly context_map="$HOME/.cli-proxy-api/claude-all-contexts.json"
 readonly verify_runtime="$HOME/.local/bin/verify-claude-all-runtime"
@@ -38,6 +39,7 @@ runtime="$($verify_runtime)"
 context_env=("${(@f)$($prepare_context "$context_map")}")
 
 export DISABLE_UPDATES=1
+export CLAUDE_CONFIG_DIR="$claude_config_dir"
 export ANTHROPIC_BASE_URL="http://127.0.0.1:8317"
 export ANTHROPIC_AUTH_TOKEN="$(<"$key_file")"
 export CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1

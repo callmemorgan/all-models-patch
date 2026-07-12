@@ -65,6 +65,11 @@ continues displaying stale data; the following render sees the atomic update.
 
 ### Swarm mode
 
+`claude-all` uses its own Claude Code profile at `~/.claude-all` via
+`CLAUDE_CONFIG_DIR`. Its settings, sessions, plugins, and local state therefore
+stay separate from both stock `~/.claude` and `claude-personal`'s
+`~/.claude-personal` profile.
+
 `claude-all` enables Claude Code's native agent-team runtime and loads a private
 `/claude-all-swarm:swarm <task>` command. The command performs a one-shot,
 Kimi-inspired fan-out:
