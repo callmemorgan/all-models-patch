@@ -13,10 +13,10 @@ if [[ -n "$(git -C "$root" status --porcelain -- . ':(exclude)plugin/**')" ]]; t
   print -u2 "publish-release: non-plugin worktree changes must be committed first"
   exit 1
 fi
-for path in "$archive" "$manifest" "$signature" "$signers"; do
-  [[ -f "$path" ]] || { print -u2 "publish-release: missing $path; run bin/prepare-release"; exit 1; }
+for asset in "$archive" "$manifest" "$signature" "$signers"; do
+  [[ -f "$asset" ]] || { print -u2 "publish-release: missing $asset; run bin/prepare-release"; exit 1; }
 done
 
-git -C "$root" tag -s "$tag" -m "all-models-patch $version"
-git -C "$root" push origin "$tag"
+/usr/bin/git -C "$root" tag -s "$tag" -m "all-models-patch $version"
+/usr/bin/git -C "$root" push origin "$tag"
 gh release create "$tag" "$archive" "$manifest" "$signature" "$signers" --repo callmemorgan/all-models-patch --title "all-models-patch $version" --generate-notes
