@@ -14,6 +14,7 @@ import {
   readManagerState,
   reconcileStable,
   resolveVerifiedRuntime,
+  uninstallAllModelsPatch,
 } from "./stable-manager.mjs";
 
 const args = process.argv.slice(2);
@@ -81,6 +82,10 @@ try {
     if (!version) throw new Error("usage: all-models-patch rollback VERSION");
     const result = await activateSupportedVersion(version, { toolRoot, paths });
     process.stdout.write(`${json ? JSON.stringify(result, null, 2) : `activated Claude ${version}: ${result.status}`}\n`);
+  } else if (command === "uninstall") {
+    if (!args.includes("--yes")) throw new Error("uninstall requires --yes; profiles and gateway credentials are preserved");
+    uninstallAllModelsPatch({ paths });
+    process.stdout.write("Removed all-models-patch manager and runtime portfolios. Profiles and gateway credentials were preserved.\n");
   } else {
     throw new Error(`unknown command: ${command}`);
   }

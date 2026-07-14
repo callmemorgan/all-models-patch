@@ -54,6 +54,12 @@ export async function maybeSelfUpdate({
   rmSync(extractRoot, { recursive: true, force: true });
   mkdirSync(extractRoot, { recursive: true, mode: 0o700 });
   try {
+    const entries = execFileSync("/usr/bin/tar", ["-tzf", archive], { encoding: "utf8" })
+      .split("\n")
+      .filter(Boolean);
+    if (entries.length === 0 || entries.some((entry) => entry.startsWith("/") || entry.split("/").includes(".."))) {
+      throw new Error("release bundle contains an unsafe archive path");
+    }
     execFileSync("/usr/bin/tar", ["-xzf", archive, "-C", extractRoot], { stdio: "pipe" });
     const roots = readdirSync(extractRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory());
     if (roots.length !== 1) throw new Error("release bundle must contain exactly one root directory");
@@ -99,7 +105,13 @@ function acquireReleaseLock(path) {
   try {
     mkdirSync(path, { mode: 0o700 });
   } catch (error) {
-    if (error.code === "EEXIST") throw new Error("another signed release update is already running");
+    if (error.code === "EEXIST") {
+      if (Date.now() - statSync(path).mtimeMs > 15 * 60 * 1_000) {
+        rmSync(path, { recursive: true, force: true });
+        return acquireReleaseLock(path);
+      }
+      throw new Error("another signed release update is already running");
+    }
     throw error;
   }
 }

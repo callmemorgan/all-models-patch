@@ -2,10 +2,11 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { fileSha256 } from "../src/support-pack.mjs";
 import { RELEASE_SIGNING_NAMESPACE, validateReleaseManifest } from "../src/release-manifest.mjs";
 
-const root = resolve(new URL("..", import.meta.url).pathname);
+const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const catalog = JSON.parse(readFileSync(join(root, "support", "catalog.json"), "utf8"));
 const version = packageJson.version;
@@ -13,12 +14,13 @@ const dist = join(root, "dist");
 const stage = join(dist, `all-models-patch-${version}`);
 const archive = join(dist, `all-models-patch-${version}-darwin-arm64.tar.gz`);
 const signingKey = resolve(process.env.ALL_MODELS_PATCH_SIGNING_KEY ?? `${process.env.HOME}/.ssh/id_ed25519_signing`);
+const bun = process.env.BUN ?? execFileSync("/usr/bin/which", ["bun"], { encoding: "utf8" }).trim();
 
 if (catalog.managerVersion !== version) throw new Error("support catalog manager version does not match package version");
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(join(stage, "bin"), { recursive: true });
 
-execFileSync("/opt/homebrew/bin/bun", ["build", "--compile", join(root, "src", "manager-cli.mjs"), "--outfile", join(stage, "bin", "all-models-patch")], { stdio: "inherit" });
+execFileSync(bun, ["build", "--compile", join(root, "src", "manager-cli.mjs"), "--outfile", join(stage, "bin", "all-models-patch")], { stdio: "inherit" });
 for (const path of [
   "bin/claude-all",
   "bin/claude-stable",

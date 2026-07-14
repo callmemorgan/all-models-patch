@@ -146,6 +146,7 @@ all-models-patch check
 all-models-patch update
 all-models-patch doctor
 all-models-patch rollback 2.1.197
+all-models-patch uninstall --yes
 ```
 
 ## Supported Claude builds
@@ -195,6 +196,10 @@ the previously active `claude-all` runtime.
 `claude-all` uses an isolated `~/.claude-all` profile and always exports
 `DISABLE_UPDATES=1`; the project manager, not Claude Code's built-in updater,
 owns this runtime portfolio. The ordinary `claude` installation remains stock.
+
+Uninstall removes the manager, LaunchAgent, and isolated stock/patched runtime
+portfolios. It intentionally preserves `~/.claude-all`, `~/.cli-proxy-api`,
+the companion proxy, and the ordinary stock `claude` installation.
 
 ## Development
 

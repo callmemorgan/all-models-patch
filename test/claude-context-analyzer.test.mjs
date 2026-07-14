@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -7,7 +7,7 @@ import { analyzeClaudeBinary, inspectClaudeCandidate } from "../src/claude-conte
 
 const stable = `${process.env.HOME}/.local/share/claude-stable/versions/2.1.197/claude`;
 
-test("recognizes the verified stock stable resolver", () => {
+test("recognizes the verified stock stable resolver", { skip: !existsSync(stable) }, () => {
   const result = analyzeClaudeBinary(stable, { version: "2.1.197" });
   assert.equal(result.architecture, "arm64");
   assert.equal(result.attributionOffset, 213451965);
@@ -16,7 +16,7 @@ test("recognizes the verified stock stable resolver", () => {
   assert.equal(result.compactCallCount, 13);
 });
 
-test("recognizes the reviewed Claude 2.1.201 resolver layout", () => {
+test("recognizes the reviewed Claude 2.1.201 resolver layout", { skip: !existsSync(`${process.env.HOME}/.local/share/claude-stable/versions/2.1.201/claude`) }, () => {
   const path = `${process.env.HOME}/.local/share/claude-stable/versions/2.1.201/claude`;
   const result = analyzeClaudeBinary(path, { version: "2.1.201" });
   assert.equal(result.architecture, "arm64");
@@ -26,7 +26,7 @@ test("recognizes the reviewed Claude 2.1.201 resolver layout", () => {
   assert.equal(result.compactCallCount, 14);
 });
 
-test("rejects a changed resolver neighborhood", () => {
+test("rejects a changed resolver neighborhood", { skip: !existsSync(stable) }, () => {
   const directory = mkdtempSync(join(tmpdir(), "claude-context-analyzer-"));
   const target = join(directory, "claude");
   const binary = readFileSync(stable);
@@ -36,7 +36,7 @@ test("rejects a changed resolver neighborhood", () => {
   assert.throws(() => analyzeClaudeBinary(target), /fingerprint not found/);
 });
 
-test("reports candidate seams independently without authorizing an unknown hash", () => {
+test("reports candidate seams independently without authorizing an unknown hash", { skip: !existsSync(stable) }, () => {
   const directory = mkdtempSync(join(tmpdir(), "claude-candidate-analyzer-"));
   const target = join(directory, "claude");
   const binary = readFileSync(stable);

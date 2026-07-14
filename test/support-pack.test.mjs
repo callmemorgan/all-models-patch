@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import {
   applySupportPack,
@@ -34,7 +34,7 @@ test("validates and selects an exact immutable support pack", () => {
   );
 });
 
-test("applies the reviewed 2.1.197 pack reproducibly", () => {
+test("applies the reviewed 2.1.197 pack reproducibly", { skip: !existsSync(stable) }, () => {
   const stock = readFileSync(stable);
   const result = applySupportPack(stock, pack);
   assert.equal(result.unsignedPatchedSha256, pack.expectedUnsignedPatchedSha256);
@@ -44,7 +44,7 @@ test("applies the reviewed 2.1.197 pack reproducibly", () => {
   }
 });
 
-test("rejects stock mutations and oversized replacements", () => {
+test("rejects stock mutations and oversized replacements", { skip: !existsSync(stable) }, () => {
   const stock = Buffer.from(readFileSync(stable));
   stock[100] ^= 1;
   assert.throws(() => applySupportPack(stock, pack), /SHA-256 mismatch/);
@@ -57,4 +57,10 @@ test("orders upgrades, current versions, and rollbacks", () => {
   assert.equal(compareVersions("2.1.201", "2.1.197"), 1);
   assert.equal(compareVersions("2.1.197", "2.1.197"), 0);
   assert.equal(compareVersions("2.1.197", "2.1.201"), -1);
+});
+
+test("rejects support-pack paths that escape the signed catalog root", () => {
+  const invalid = structuredClone(catalog);
+  invalid.packs[0].path = "../credentials.json";
+  assert.throws(() => validateSupportCatalog(invalid), /escapes support root/);
 });

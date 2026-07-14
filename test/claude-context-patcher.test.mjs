@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -12,7 +12,7 @@ import {
 
 const stable = `${process.env.HOME}/.local/share/claude-stable/versions/2.1.197/claude`;
 
-test("patches gateway discovery to retain real provider model IDs", () => {
+test("patches gateway discovery to retain real provider model IDs", { skip: !existsSync(stable) }, () => {
   const directory = mkdtempSync(join(tmpdir(), "claude-context-patcher-"));
   const target = join(directory, "claude");
 

@@ -171,7 +171,7 @@ function assertNeighborhood(source, offset, literals, radius) {
 }
 
 function inspectSeam(source, starts, anchors) {
-  const matches = starts.flatMap((start) => {
+  const candidates = starts.flatMap((start) => {
     const offsets = [];
     let offset = 0;
     while ((offset = source.indexOf(start, offset)) >= 0) {
@@ -180,7 +180,11 @@ function inspectSeam(source, starts, anchors) {
     }
     return offsets;
   });
-  if (matches.length === 0) return { status: "missing", offset: null, matchedStart: null, missingAnchors: anchors };
+  const matches = candidates.filter((match) => {
+    const neighborhood = source.slice(match.offset, match.offset + 4_000);
+    return anchors.every((anchor) => neighborhood.includes(anchor));
+  });
+  if (matches.length === 0) return { status: "missing", offset: null, matchedStart: null, candidates: candidates.length, missingAnchors: anchors };
   if (matches.length > 1) return { status: "ambiguous", offset: null, matchedStart: null, candidates: matches.length };
   const match = matches[0];
   const neighborhood = source.slice(match.offset, match.offset + 4_000);

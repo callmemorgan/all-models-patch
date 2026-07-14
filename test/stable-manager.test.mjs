@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -9,6 +9,7 @@ import {
   managerPaths,
   readManagerState,
   reconcileStable,
+  uninstallAllModelsPatch,
 } from "../src/stable-manager.mjs";
 
 test("validates the Stable pointer and darwin-arm64 manifest", async () => {
@@ -73,4 +74,22 @@ test("malformed checks preserve failure state and fail closed", async () => {
     /invalid version/,
   );
   assert.equal(readManagerState(paths).consecutiveFailures, 1);
+});
+
+test("uninstall removes only managed assets and preserves profiles", () => {
+  const home = mkdtempSync(join(tmpdir(), "all-models-patch-uninstall-"));
+  const paths = managerPaths(home, join(home, "state"));
+  const executable = join(paths.managerRoot, "current", "bin", "all-models-patch");
+  mkdirSync(join(paths.managerRoot, "current", "bin"), { recursive: true });
+  mkdirSync(paths.patchedRoot, { recursive: true });
+  mkdirSync(paths.stockRoot, { recursive: true });
+  mkdirSync(paths.localBin, { recursive: true });
+  mkdirSync(join(home, ".claude-all"), { recursive: true });
+  writeFileSync(executable, "manager");
+  symlinkSync(executable, join(paths.localBin, "all-models-patch"));
+  uninstallAllModelsPatch({ paths, unloadLaunchAgent: false });
+  assert.equal(existsSync(paths.managerRoot), false);
+  assert.equal(existsSync(paths.patchedRoot), false);
+  assert.equal(existsSync(paths.stockRoot), false);
+  assert.equal(existsSync(join(home, ".claude-all")), true);
 });

@@ -11,6 +11,8 @@ import {
   rmSync,
   statSync,
   symlinkSync,
+  lstatSync,
+  readlinkSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
@@ -33,6 +35,9 @@ export function managerPaths(home = process.env.HOME, stateHome = process.env.XD
     lockPath: join(stateRoot, "all-models-patch", ".stable-update.lock"),
     stockRoot: join(home, ".local", "share", "claude-stable"),
     patchedRoot: join(home, ".local", "share", "claude-all"),
+    managerRoot: join(home, ".local", "share", "all-models-patch"),
+    localBin: join(home, ".local", "bin"),
+    launchAgentPath: join(home, "Library", "LaunchAgents", "com.callmemorgan.all-models-patch.stable-monitor.plist"),
   };
 }
 
@@ -200,6 +205,7 @@ export function fallbackRevokedRuntime({ catalog, toolRoot, paths = managerPaths
     if (!entry || entry.status !== "active") continue;
     try {
       const { pack } = loadSupportPack(toolRoot, entry);
+      if (manifest.supportPackSha256 !== entry.packSha256) throw new Error("runtime manifest support-pack hash mismatch");
       verifyInstalledRuntime({ patchedPath, stockPath: manifest.stockPath, manifest, pack });
       promoteRuntime(paths.patchedRoot, directory);
       promoteRuntime(paths.stockRoot, dirname(manifest.stockPath));
@@ -229,7 +235,11 @@ export async function installSupportedRuntime({ descriptor, entry, pack, catalog
 
   if (existsSync(patchedPath) && existsSync(patchedManifestPath)) {
     const manifest = JSON.parse(readFileSync(patchedManifestPath, "utf8"));
-    if (manifest.supportPackId === pack.id && manifest.stockSha256 === pack.stock.sha256) {
+    if (
+      manifest.supportPackId === pack.id &&
+      manifest.supportPackSha256 === entry.packSha256 &&
+      manifest.stockSha256 === pack.stock.sha256
+    ) {
       verifyInstalledRuntime({ patchedPath, stockPath: manifest.stockPath, manifest, pack });
       promoteRuntime(paths.patchedRoot, patchedDirectory);
       if (existsSync(stockPath)) promoteRuntime(paths.stockRoot, stockDirectory);
@@ -302,6 +312,8 @@ export async function activateSupportedVersion(version, {
 }
 
 export function verifyInstalledRuntime({ patchedPath, stockPath, manifest, pack }) {
+  if (manifest.stockSha256 !== pack.stock.sha256) throw new Error("runtime manifest stock hash does not match its support pack");
+  if (manifest.unsignedPatchedSha256 !== pack.expectedUnsignedPatchedSha256) throw new Error("runtime manifest patched hash does not match its support pack");
   if (!existsSync(stockPath) || fileSha256(stockPath) !== manifest.stockSha256) throw new Error("versioned stock runtime no longer matches its manifest");
   if (fileSha256(patchedPath) !== manifest.patchedSha256) throw new Error("patched runtime hash mismatch");
   verifyPatchedBytesWithSupportPack(patchedPath, pack);
@@ -318,9 +330,29 @@ export function resolveVerifiedRuntime({ toolRoot, paths = managerPaths() }) {
   const entry = catalog.packs.find((candidate) => candidate.id === manifest.supportPackId);
   if (!entry) throw new Error(`active support pack is not installed: ${manifest.supportPackId}`);
   if (entry.status !== "active") throw new Error(`active support pack is ${entry.status}: ${manifest.supportPackId}`);
+  if (manifest.supportPackSha256 !== entry.packSha256) throw new Error("runtime manifest support-pack hash mismatch");
   const { pack } = loadSupportPack(toolRoot, entry);
   verifyInstalledRuntime({ patchedPath, stockPath: manifest.stockPath, manifest, pack });
   return patchedPath;
+}
+
+export function uninstallAllModelsPatch({ paths = managerPaths(), unloadLaunchAgent = true } = {}) {
+  if (unloadLaunchAgent && process.platform === "darwin" && typeof process.getuid === "function") {
+    spawnSync("/bin/launchctl", ["bootout", `gui/${process.getuid()}/com.callmemorgan.all-models-patch.stable-monitor`], { stdio: "ignore" });
+  }
+  for (const name of ["all-models-patch", "claude-all", "claude-stable"]) {
+    const path = join(paths.localBin, name);
+    try {
+      if (lstatSync(path).isSymbolicLink() && readlinkSync(path).includes("all-models-patch")) rmSync(path, { force: true });
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+  rmSync(paths.launchAgentPath, { force: true });
+  rmSync(paths.managerRoot, { recursive: true, force: true });
+  rmSync(paths.patchedRoot, { recursive: true, force: true });
+  rmSync(paths.stockRoot, { recursive: true, force: true });
+  rmSync(paths.stateDirectory, { recursive: true, force: true });
 }
 
 export function verifyAnthropicBinary(path, platform) {
@@ -364,6 +396,7 @@ export function formatStatus(state) {
     `Result: ${state.result?.status ?? "unknown"}`,
   ];
   if (state.result?.detail) lines.push(`Detail: ${state.result.detail}`);
+  if (state.result?.proxyWarning) lines.push(`Proxy warning: ${state.result.proxyWarning}`);
   if (state.lastSuccessfulCheckAt) lines.push(`Checked: ${state.lastSuccessfulCheckAt}`);
   if (state.lastError) lines.push(`Last error: ${state.lastError}`);
   return lines.join("\n");
