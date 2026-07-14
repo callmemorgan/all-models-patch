@@ -10,6 +10,7 @@ const stable = `${process.env.HOME}/.local/share/claude-stable/current/claude`;
 test("recognizes the verified stock stable resolver", () => {
   const result = analyzeClaudeBinary(stable, { version: "2.1.197" });
   assert.equal(result.architecture, "arm64");
+  assert.equal(result.attributionOffset, 213451965);
   assert.equal(result.gatewayFilterOffset, 204861577);
   assert.equal(result.contextCallCount, 18);
   assert.equal(result.compactCallCount, 13);

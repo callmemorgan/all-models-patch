@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 export const KNOWN_BUILDS = Object.freeze({
   "2.1.197": Object.freeze({
     sha256: "8cc0c4d1e4eb1dca3b0cc92ab02ee3505de764e023f8c901761c167b72041fb8",
+    attributionOffset: 213451965,
     gatewayFilterOffset: 204861577,
     contextResolverOffset: 205632952,
     compactResolverOffset: 207844407,
@@ -32,14 +33,23 @@ const GATEWAY_FILTER_FINGERPRINT = [
   "models:l",
 ];
 
+const ATTRIBUTION_FINGERPRINT = [
+  "function rkm(){",
+  "Co-Authored-By: ${t} <noreply@anthropic.com>",
+  "includeCoAuthoredBy===!1",
+  "function UHl(e){",
+];
+
 export function analyzeClaudeBinary(path, { version } = {}) {
   const binary = readFileSync(path);
   const source = binary.toString("latin1");
   const sha256 = createHash("sha256").update(binary).digest("hex");
   const architecture = machoArchitecture(binary);
+  const attributionOffset = uniqueOffset(source, ATTRIBUTION_FINGERPRINT[0]);
   const gatewayFilterOffset = uniqueOffset(source, GATEWAY_FILTER_FINGERPRINT[0]);
   const contextResolverOffset = uniqueOffset(source, CONTEXT_FINGERPRINT[0]);
   const compactResolverOffset = uniqueOffset(source, COMPACT_FINGERPRINT[0]);
+  assertNeighborhood(source, attributionOffset, ATTRIBUTION_FINGERPRINT, 1_500);
   assertNeighborhood(source, gatewayFilterOffset, GATEWAY_FILTER_FINGERPRINT, 1_500);
   assertNeighborhood(source, contextResolverOffset, CONTEXT_FINGERPRINT, 1_500);
   assertNeighborhood(source, compactResolverOffset, COMPACT_FINGERPRINT, 3_500);
@@ -50,6 +60,7 @@ export function analyzeClaudeBinary(path, { version } = {}) {
     size: binary.length,
     sha256,
     architecture,
+    attributionOffset,
     gatewayFilterOffset,
     contextResolverOffset,
     compactResolverOffset,
