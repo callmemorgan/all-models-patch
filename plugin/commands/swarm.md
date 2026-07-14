@@ -19,10 +19,9 @@ Rules:
 2. Briefly inspect only enough to identify independent work items. Do not do the
    main batch work yourself.
 3. Load the `agent-profiles` skill (claude-all-swarm:agent-profiles) before
-   choosing agent types. Pick a composition preset from it (bake-off,
-   review-panel, bulk-sweep, coached-build, big-context-recon, verify-pass,
-   polish-pass, solo-deep) and fill roles by the task's intel/taste bar and
-   pool headroom, unless the user has named models explicitly.
+   choosing agent types. Pick a composition preset from it and select only
+   agent types present in the current installation's agent bundle, unless the
+   user has named models explicitly.
 4. Partition as finely as useful, but run the partition in bounded waves.
    Unless the user supplied a lower limit, keep at most 5 workers live at once.
    When a worker finishes, launch the next queued item. A user request for more
@@ -31,8 +30,7 @@ Rules:
 5. Create a team and launch the first wave concurrently. Use the profile-led
    composition from rule 3; fall back to the active model only when no
    configured agent type is clearly better. A named model request MUST be
-   implemented by selecting its matching
-   `agent_type` (for example `fable-5`, `opus-4-8`, or `sonnet-5`); mentioning
+   implemented by selecting its configured matching `agent_type`; mentioning
    the model only in the worker name or prompt does not change the runtime model.
    Give every worker a self-contained
    prompt with its item, output contract, relevant constraints, and validation.

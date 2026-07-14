@@ -5,8 +5,7 @@
   "type": "module",
   "description": "A patched Claude Code harness for real models from a local gateway.",
   "scripts": {
-    "start": "node src/server.mjs",
-    "check": "node --check src/*.mjs && node --check test/*.mjs && node --check bin/all-models-patch bin/analyze-claude-contexts bin/claude-all-usage bin/generate-support-catalog bin/generate-support-pack bin/patch-claude-all-contexts bin/prepare-claude-context-env bin/prepare-release bin/verify-claude-all-runtime && zsh -n bin/claude-all bin/claude-stable bin/install-all-models-patch bin/publish-release && plutil -lint config/stable-monitor.plist >/dev/null && node -e \"JSON.parse(require('fs').readFileSync('plugin/.claude-plugin/plugin.json'))\"",
+    "check": "node --check src/*.mjs && node --check test/*.mjs && node --check bin/all-models-patch bin/analyze-claude-contexts bin/generate-support-catalog bin/generate-support-pack bin/patch-claude-all-contexts bin/prepare-claude-context-env bin/prepare-release bin/verify-claude-all-runtime bin/verify-release-artifacts && zsh -n bin/claude-all bin/claude-stable bin/install-all-models-patch bin/publish-release && plutil -lint config/stable-monitor.plist >/dev/null && node -e \"JSON.parse(require('fs').readFileSync('plugin/.claude-plugin/plugin.json'))\"",
     "analyze": "bin/analyze-claude-contexts",
     "patch:analyze": "bin/analyze-claude-contexts",
     "patch:build": "bin/all-models-patch update --no-self-update",
