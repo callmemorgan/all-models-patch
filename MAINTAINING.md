@@ -52,31 +52,28 @@ Published pack files are immutable. To withdraw one, mark its catalog entry
 ## Release sequence
 
 1. Bump `package.json` and increment `support/catalog.json.releaseSequence`.
-2. Run:
+2. Run the test and support-generation gates:
 
    ```bash
    npm test
    npm run check
    npm run support:generate
-   npm run release:prepare
    ```
 
-3. Verify the generated manifest:
+3. Commit the scoped source changes, then run `npm run release:prepare`. Release
+   preparation refuses dirty or uncommitted trees and records the full source
+   commit in the signed manifest.
+4. Verify the generated manifest and archive:
 
    ```bash
-   ssh-keygen -Y verify \
-     -f config/release-signers \
-     -I callmemorgan \
-     -n all-models-patch-release \
-     -s dist/release-manifest.json.sig \
-     < dist/release-manifest.json
+   node bin/verify-release-artifacts
    ```
 
-4. Test the archive on a clean Apple Silicon user account without Node.
-5. Commit the scoped source changes. `bin/prepare-release` takes plugin files
-   from `HEAD`, so unrelated local plugin work is never included accidentally.
-6. Run `bin/prepare-release` again from the committed tree.
-7. Run `bin/publish-release` to create the signed tag and GitHub release.
+5. Test the archive on a clean Apple Silicon user account without Node.
+6. Run `bin/publish-release` to create the signed tag and GitHub release. It
+   rebuilds, signs, and verifies the artifacts from the still-clean current
+   commit immediately before publication; pre-existing `dist` files are never
+   trusted.
 
 The release manifest uses the SSH signing namespace
 `all-models-patch-release`. Consumers store the highest accepted sequence and

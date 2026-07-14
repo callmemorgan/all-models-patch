@@ -9,13 +9,13 @@ readonly manifest="$root/dist/release-manifest.json"
 readonly signature="$manifest.sig"
 readonly signers="$root/config/release-signers"
 
-if [[ -n "$(git -C "$root" status --porcelain -- . ':(exclude)plugin/**')" ]]; then
-  print -u2 "publish-release: non-plugin worktree changes must be committed first"
+if [[ -n "$(git -C "$root" status --porcelain --untracked-files=all)" ]]; then
+  print -u2 "publish-release: the complete worktree must be clean and committed"
   exit 1
 fi
-for asset in "$archive" "$manifest" "$signature" "$signers"; do
-  [[ -f "$asset" ]] || { print -u2 "publish-release: missing $asset; run bin/prepare-release"; exit 1; }
-done
+
+node "$root/bin/prepare-release"
+node "$root/bin/verify-release-artifacts"
 
 /usr/bin/git -C "$root" tag -s "$tag" -m "all-models-patch $version"
 /usr/bin/git -C "$root" push origin "$tag"

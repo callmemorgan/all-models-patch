@@ -16,6 +16,7 @@ function manifest(sequence = 7) {
     schemaVersion: 1,
     releaseSequence: sequence,
     managerVersion: "0.2.0",
+    sourceCommit: "b".repeat(40),
     assets: {
       bundle: { name: "bundle.tar.gz", sha256: "a".repeat(64), size: 123 },
     },
@@ -26,6 +27,7 @@ test("rejects replayed signed release sequences", () => {
   assertMonotonicRelease(manifest(7), 7);
   assert.throws(() => assertMonotonicRelease(manifest(6), 7), /replay detected/);
   assert.throws(() => validateReleaseManifest({ ...manifest(), managerVersion: "latest" }), /x.y.z/);
+  assert.throws(() => validateReleaseManifest({ ...manifest(), sourceCommit: "main" }), /full Git commit ID/);
 });
 
 test("verifies the pinned SSH release signature protocol", () => {

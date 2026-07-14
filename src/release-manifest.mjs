@@ -12,6 +12,9 @@ export function validateReleaseManifest(manifest) {
   if (typeof manifest.managerVersion !== "string" || !/^\d+\.\d+\.\d+$/.test(manifest.managerVersion)) {
     throw new Error("release managerVersion must use x.y.z syntax");
   }
+  if (typeof manifest.sourceCommit !== "string" || !/^[a-f0-9]{40}$/.test(manifest.sourceCommit)) {
+    throw new Error("release sourceCommit must be a full Git commit ID");
+  }
   if (!manifest.assets || typeof manifest.assets !== "object") throw new Error("release manifest assets are missing");
   validateAsset(manifest.assets.bundle, "bundle");
   return manifest;

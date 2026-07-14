@@ -34,6 +34,21 @@ test("ignores unsafe thresholds", () => {
   assert.equal(result.warnings.length, 1);
 });
 
+test("rejects model IDs containing line breaks or control characters", () => {
+  const path = fixture({ schemaVersion: 1, models: {
+    "safe-model": { contextTokens: 350000, compactAtTokens: 300000, status: "route-validated" },
+    "bad\nNODE_OPTIONS": { contextTokens: 350000, compactAtTokens: 300000, status: "route-validated" },
+    "bad\rmodel": { contextTokens: 350000, compactAtTokens: 300000, status: "route-validated" },
+    "bad\u007fmodel": { contextTokens: 350000, compactAtTokens: 300000, status: "route-validated" },
+  }});
+  const result = loadContextEnvironment(path);
+  assert.deepEqual(result.environment, [
+    ["CLAUDE_ALL_CONTEXT_safe-model", "350000"],
+    ["CLAUDE_ALL_COMPACT_safe-model", "300000"],
+  ]);
+  assert.equal(result.warnings.length, 3);
+});
+
 test("rejects unknown schemas", () => {
   const path = fixture({ schemaVersion: 2, models: {} });
   assert.throws(() => loadContextEnvironment(path), /schemaVersion 1/);

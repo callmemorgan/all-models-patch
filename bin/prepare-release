@@ -15,8 +15,11 @@ const stage = join(dist, `all-models-patch-${version}`);
 const archive = join(dist, `all-models-patch-${version}-darwin-arm64.tar.gz`);
 const signingKey = resolve(process.env.ALL_MODELS_PATCH_SIGNING_KEY ?? `${process.env.HOME}/.ssh/id_ed25519_signing`);
 const bun = process.env.BUN ?? execFileSync("/usr/bin/which", ["bun"], { encoding: "utf8" }).trim();
+const worktreeStatus = execFileSync("/usr/bin/git", ["-C", root, "status", "--porcelain", "--untracked-files=all"], { encoding: "utf8" });
+const sourceCommit = execFileSync("/usr/bin/git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 
 if (catalog.managerVersion !== version) throw new Error("support catalog manager version does not match package version");
+if (worktreeStatus.trim()) throw new Error("release preparation requires a completely clean committed tree");
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(join(stage, "bin"), { recursive: true });
 
@@ -45,6 +48,7 @@ const manifest = validateReleaseManifest({
   schemaVersion: 1,
   releaseSequence: catalog.releaseSequence,
   managerVersion: version,
+  sourceCommit,
   publishedAt: new Date().toISOString(),
   assets: {
     bundle: {

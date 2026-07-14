@@ -117,11 +117,13 @@ export async function reconcileStable({
   mkdirSync(paths.stateDirectory, { recursive: true, mode: 0o700 });
   acquireLock(paths.lockPath);
   const previous = readManagerState(paths);
+  let installedCatalog = null;
   try {
     const checkedAt = new Date().toISOString();
     const pinnedVersion = pinnedStockVersion(paths);
+    installedCatalog = loadSupportCatalog(toolRoot).catalog;
     const descriptor = await fetchStableDescriptor({ fetchImpl, releasesUrl });
-    const { catalog } = loadSupportCatalog(toolRoot);
+    const catalog = installedCatalog;
     const entry = selectSupportPack(catalog, {
       claudeVersion: descriptor.stableVersion,
       platform: "darwin-arm64",
@@ -171,6 +173,10 @@ export async function reconcileStable({
       ...(previous ?? {}),
       checkedAt: new Date().toISOString(),
       consecutiveFailures: failures,
+      highestAcceptedReleaseSequence: Math.max(
+        previous?.highestAcceptedReleaseSequence ?? 0,
+        installedCatalog?.releaseSequence ?? 0,
+      ),
       lastError: error.message,
     };
     if (failures === 3) notify("All Models Patch monitor failed", `${failures} consecutive checks failed: ${error.message}`);

@@ -74,6 +74,7 @@ test("malformed checks preserve failure state and fail closed", async () => {
     /invalid version/,
   );
   assert.equal(readManagerState(paths).consecutiveFailures, 1);
+  assert.equal(readManagerState(paths).highestAcceptedReleaseSequence, 1);
 });
 
 test("uninstall removes only managed assets and preserves profiles", () => {

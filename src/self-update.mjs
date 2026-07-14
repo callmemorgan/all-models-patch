@@ -1,8 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { assertMonotonicRelease, verifyReleaseManifestSignature } from "./release-manifest.mjs";
-import { downloadAtomic, managerPaths, readManagerState } from "./stable-manager.mjs";
+import { downloadAtomic, managerPaths, readManagerState, writeManagerState } from "./stable-manager.mjs";
 
 export const DEFAULT_RELEASE_BASE = "https://github.com/callmemorgan/all-models-patch/releases/latest/download";
 
@@ -18,6 +18,7 @@ export async function maybeSelfUpdate({
   fetchImpl = fetch,
   releaseBase = process.env.ALL_MODELS_PATCH_RELEASE_BASE ?? DEFAULT_RELEASE_BASE,
   force = false,
+  verifyManifest = verifyReleaseManifestSignature,
 } = {}) {
   if (!force && !isInstalledToolRoot(toolRoot)) return { updated: false, skipped: "development checkout" };
   const lockPath = join(paths.stateDirectory, ".release-update.lock");
@@ -29,17 +30,23 @@ export async function maybeSelfUpdate({
   const signaturePath = join(checkDirectory, "release-manifest.json.sig");
   writeFileSync(manifestPath, await fetchBuffer(`${releaseBase}/release-manifest.json`, fetchImpl), { mode: 0o600 });
   writeFileSync(signaturePath, await fetchBuffer(`${releaseBase}/release-manifest.json.sig`, fetchImpl), { mode: 0o600 });
-  const manifest = verifyReleaseManifestSignature({
+  const manifest = verifyManifest({
     manifestPath,
     signaturePath,
     allowedSignersPath: join(toolRoot, "config", "release-signers"),
   });
   const previous = readManagerState(paths);
-  assertMonotonicRelease(manifest, previous?.highestAcceptedReleaseSequence ?? 0);
+  const releaseFloor = acceptedReleaseFloor(previous, currentSequence);
+  assertMonotonicRelease(manifest, releaseFloor);
   if (manifest.managerVersion === currentVersion) {
     if (currentSequence !== undefined && manifest.releaseSequence !== currentSequence) {
       throw new Error("signed release sequence changed without a manager version change");
     }
+  } else if (currentSequence !== undefined && manifest.releaseSequence === currentSequence) {
+    throw new Error("signed manager version changed without a release sequence change");
+  }
+  recordAcceptedReleaseSequence(paths, manifest.releaseSequence);
+  if (manifest.managerVersion === currentVersion) {
     return { updated: false, manifest };
   }
 
@@ -92,6 +99,24 @@ export async function maybeSelfUpdate({
   } finally {
     rmSync(lockPath, { recursive: true, force: true });
   }
+}
+
+export function acceptedReleaseFloor(previous, currentSequence) {
+  const persisted = previous?.highestAcceptedReleaseSequence ?? 0;
+  for (const [label, value] of [["persisted", persisted], ["installed", currentSequence ?? 0]]) {
+    if (!Number.isSafeInteger(value) || value < 0) throw new Error(`${label} release sequence is invalid`);
+  }
+  return Math.max(persisted, currentSequence ?? 0);
+}
+
+export function recordAcceptedReleaseSequence(paths, releaseSequence) {
+  if (!Number.isSafeInteger(releaseSequence) || releaseSequence < 1) throw new Error("accepted release sequence is invalid");
+  const previous = readManagerState(paths);
+  const persisted = acceptedReleaseFloor(previous, 0);
+  writeManagerState(paths, {
+    ...(previous ?? {}),
+    highestAcceptedReleaseSequence: Math.max(persisted, releaseSequence),
+  });
 }
 
 async function fetchBuffer(url, fetchImpl) {

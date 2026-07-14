@@ -62,6 +62,15 @@ release-signers
 Verify the release manifest with the built-in OpenSSH verifier:
 
 ```bash
+expected='SHA256:yLJtSegpLNiWyJYHeHI3MwP4qez0n+CF+K/EOHos6KY'
+actual="$(awk '{ for (i = 1; i <= NF; i++) if ($i ~ /^ssh-(ed25519|rsa)$/) { print $i, $(i + 1); exit } }' release-signers \
+  | ssh-keygen -lf - -E sha256 \
+  | awk '{ print $2 }')"
+test "$actual" = "$expected" || {
+  echo "release signing key fingerprint mismatch" >&2
+  exit 1
+}
+
 ssh-keygen -Y verify \
   -f release-signers \
   -I callmemorgan \
@@ -70,13 +79,14 @@ ssh-keygen -Y verify \
   < release-manifest.json
 ```
 
-The expected signing-key fingerprint is:
+The pinned signing-key fingerprint used above is:
 
 ```text
 SHA256:yLJtSegpLNiWyJYHeHI3MwP4qez0n+CF+K/EOHos6KY
 ```
 
-Compare the archive's `shasum -a 256` and byte size with
+Do not proceed unless both the explicit fingerprint comparison and signature
+verification succeed. Compare the archive's `shasum -a 256` and byte size with
 `release-manifest.json`, then extract and install it:
 
 ```bash

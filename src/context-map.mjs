@@ -36,7 +36,11 @@ export function loadContextEnvironment(path) {
 }
 
 function validModelId(value) {
-  return typeof value === "string" && value.length > 0 && value.length <= 120 && !value.includes("=") && !value.includes("\0");
+  return typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 120 &&
+    !value.includes("=") &&
+    !/[\u0000-\u001f\u007f]/u.test(value);
 }
 
 function isPlainObject(value) {
