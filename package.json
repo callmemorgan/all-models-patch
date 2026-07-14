@@ -1,9 +1,9 @@
 {
-  "name": "claude-code-model-bridge",
+  "name": "all-models-patch",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "A local, credential-isolating model gateway for Claude Code.",
+  "description": "A patched Claude Code harness for real models from a local gateway.",
   "scripts": {
     "start": "node src/server.mjs",
     "check": "node --check src/*.mjs && node --check test/*.mjs && node --check bin/claude-all-usage && zsh -n bin/claude-all && node -e \"JSON.parse(require('fs').readFileSync('plugin/.claude-plugin/plugin.json'))\"",

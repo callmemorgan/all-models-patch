@@ -1,8 +1,9 @@
-# Claude Code Model Bridge
+# All Models Patch
 
-A personal, local model gateway for Claude Code. It makes the models available
-to your existing Codex subscription appear in Claude Code's `/model` picker,
-without using a third-party adapter or copying a ChatGPT/Codex token.
+A personal, local Claude Code patch and multi-model harness. It makes models
+from the local CLIProxyAPI gateway available in Claude Code's `/model` picker
+under their real model IDs, with isolated settings and model-aware runtime
+behavior.
 
 ## What it does
 
@@ -28,7 +29,7 @@ offers that path.
 From the project you want Claude Code to work in:
 
 ```bash
-/Users/morgan/personal/claude-code-model-bridge/bin/claude-with-models
+/Users/morgan/personal/all-models-patch/bin/claude-with-models
 ```
 
 Then run `/model` in Claude Code and select an entry named `Codex — …`. The
@@ -38,7 +39,7 @@ account's actual model availability.
 To add Kimi Code after obtaining an official Kimi Code API key:
 
 ```bash
-/Users/morgan/personal/claude-code-model-bridge/bin/set-kimi-code-key
+/Users/morgan/personal/all-models-patch/bin/set-kimi-code-key
 ```
 
 Run the launcher again; `/model` will then also show `Kimi Code` and, when

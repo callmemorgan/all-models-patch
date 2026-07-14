@@ -20,13 +20,13 @@ test("patches gateway discovery to retain real provider model IDs", () => {
   verifyPatchedBytes(target);
 
   const patched = readFileSync(target).toString("latin1");
-  assert.equal(PATCHER_VERSION, 5);
+  assert.equal(PATCHER_VERSION, 6);
   assert.equal(result.analysis.attributionOffset, 213451965);
   assert.equal(result.analysis.gatewayFilterOffset, 204861577);
   assert.equal(patched.includes("let l=a.data.data;"), true);
   assert.equal(patched.includes("a.data.data.filter((d)=>/^(claude|anthropic)/i.test(d.id))"), false);
   assert.equal(patched.includes("Co-Authored-By: ${t} <${m}>"), true);
-  assert.equal(patched.includes("Generated-With: @callmemorgan/claude-all\\nCo-Authored-By: ${t} <${m}>"), true);
+  assert.equal(patched.includes("Generated-With: @callmemorgan/all-models-patch\\nCo-Authored-By: ${t} <${m}>"), true);
   assert.equal(patched.includes('UHl(e)?QAn(e):"Claude"'), false);
 });
 

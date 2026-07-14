@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { analyzeClaudeBinary } from "./claude-context-analyzer.mjs";
 
-export const PATCHER_VERSION = 5;
+export const PATCHER_VERSION = 6;
 
 export const MODEL_PROVIDER_EMAILS = Object.freeze([
   Object.freeze({ pattern: /^(?:claude|anthropic)/i, email: "noreply@anthropic.com" }),
@@ -19,7 +19,7 @@ export function providerEmailForModel(modelId) {
 }
 
 const ORIGINAL_ATTRIBUTION = "function rkm(){let e=Cs(),t=aA(e)?QAn(x9e.firstParty):UHl(e)?QAn(e):\"Claude\",n=`\\uD83E\\uDD16 Generated with [Claude Code](${E5e})`,r=`Co-Authored-By: ${t} <noreply@anthropic.com>`,o=Dr(),s=o.attribution;if(s&&(s.commit!==void 0||s.pr!==void 0))return{commit:s.commit??r,pr:s.pr??n};if(o.includeCoAuthoredBy===!1)return{commit:\"\",pr:\"\"};return{commit:r,pr:n}}function UHl(e){if(vY(e)===null)return!1;let t=vrt(e);if(t!==e&&Object.hasOwn(Art,t))return!0;let n=oo(e),r=ju(e).toLowerCase(),o=r.indexOf(n),s=n.length;if(o===-1&&n.endsWith(\"-0\")){let u=n.slice(0,-2);o=r.indexOf(u),s=u.length}if(o===-1){if(!e.includes(\"application-inference-profile\"))return!1;let u=Vxt(ju(e));return!!u&&UHl(u)}let i=r.slice(0,o),a=r.slice(o+s),l=i===\"\"||/[./]$/.test(i),c=/^(?:-fast|-latest)?(?:-v\\d+@\\d{8}|[-@]\\d{8})?(?:-v\\d+(?::\\d+)?)?$/.test(a);return l&&c}";
-const PATCHED_ATTRIBUTION = "function rkm(){let e=Cs(),a=UHl(e),t=a?QAn(e):e,m=a?\"noreply@anthropic.com\":/^(gpt|codex)/.test(e)?\"noreply@openai.com\":/^gemini/.test(e)?\"gemini-code-assist[bot]@users.noreply.github.com\":/^grok/.test(e)?\"grok@x.ai\":/^kimi/.test(e)?\"noreply@moonshot.ai\":/^minimax/.test(e)?\"noreply@minimax.io\":/^glm/.test(e)?\"noreply@z.ai\":\"noreply@unknown.invalid\",n=`\\uD83E\\uDD16 Generated with [Claude Code](${E5e})`,r=`Generated-With: @callmemorgan/claude-all\\nCo-Authored-By: ${t} <${m}>`,o=Dr(),s=o.attribution;if(s&&(s.commit!==void 0||s.pr!==void 0))return{commit:s.commit??r,pr:s.pr??n};if(o.includeCoAuthoredBy===!1)return{commit:\"\",pr:\"\"};return{commit:r,pr:n}}function UHl(e){return /(^|[./])(?:claude|anthropic)[-./]/i.test(e)}";
+const PATCHED_ATTRIBUTION = "function rkm(){let e=Cs(),a=UHl(e),t=a?QAn(e):e,m=a?\"noreply@anthropic.com\":/^(gpt|codex)/.test(e)?\"noreply@openai.com\":/^gemini/.test(e)?\"gemini-code-assist[bot]@users.noreply.github.com\":/^grok/.test(e)?\"grok@x.ai\":/^kimi/.test(e)?\"noreply@moonshot.ai\":/^minimax/.test(e)?\"noreply@minimax.io\":/^glm/.test(e)?\"noreply@z.ai\":\"noreply@unknown.invalid\",n=`\\uD83E\\uDD16 Generated with [Claude Code](${E5e})`,r=`Generated-With: @callmemorgan/all-models-patch\\nCo-Authored-By: ${t} <${m}>`,o=Dr(),s=o.attribution;if(s&&(s.commit!==void 0||s.pr!==void 0))return{commit:s.commit??r,pr:s.pr??n};if(o.includeCoAuthoredBy===!1)return{commit:\"\",pr:\"\"};return{commit:r,pr:n}}function UHl(e){return /(^|[./])(?:claude|anthropic)[-./]/i.test(e)}";
 
 const ORIGINAL_GATEWAY_FILTER = "let l=a.data.data.filter((d)=>/^(claude|anthropic)/i.test(d.id));";
 const PATCHED_GATEWAY_FILTER = "let l=a.data.data;";

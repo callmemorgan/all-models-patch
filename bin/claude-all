@@ -7,7 +7,7 @@ readonly agents_file="$HOME/.cli-proxy-api/claude-all-agents.json"
 readonly context_map="$HOME/.cli-proxy-api/claude-all-contexts.json"
 readonly verify_runtime="$HOME/.local/bin/verify-claude-all-runtime"
 readonly prepare_context="$HOME/.local/bin/prepare-claude-context-env"
-readonly swarm_plugin="/Users/morgan/personal/claude-code-model-bridge/plugin"
+readonly swarm_plugin="/Users/morgan/personal/all-models-patch/plugin"
 
 if [[ ! -r "$key_file" ]]; then
   print -u2 "claude-all: missing proxy credential: $key_file"
