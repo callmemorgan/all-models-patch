@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 export const KNOWN_BUILDS = Object.freeze({
   "2.1.197": Object.freeze({
     sha256: "8cc0c4d1e4eb1dca3b0cc92ab02ee3505de764e023f8c901761c167b72041fb8",
+    gatewayFilterOffset: 204861577,
     contextResolverOffset: 205632952,
     compactResolverOffset: 207844407,
     contextCallCount: 18,
@@ -25,13 +26,21 @@ const COMPACT_FINGERPRINT = [
   "return{window:o,configured:o,source:\"auto\"}",
 ];
 
+const GATEWAY_FILTER_FINGERPRINT = [
+  "let l=a.data.data.filter((d)=>/^(claude|anthropic)/i.test(d.id));",
+  "[gatewayDiscovery] 0 usable models after filter",
+  "models:l",
+];
+
 export function analyzeClaudeBinary(path, { version } = {}) {
   const binary = readFileSync(path);
   const source = binary.toString("latin1");
   const sha256 = createHash("sha256").update(binary).digest("hex");
   const architecture = machoArchitecture(binary);
+  const gatewayFilterOffset = uniqueOffset(source, GATEWAY_FILTER_FINGERPRINT[0]);
   const contextResolverOffset = uniqueOffset(source, CONTEXT_FINGERPRINT[0]);
   const compactResolverOffset = uniqueOffset(source, COMPACT_FINGERPRINT[0]);
+  assertNeighborhood(source, gatewayFilterOffset, GATEWAY_FILTER_FINGERPRINT, 1_500);
   assertNeighborhood(source, contextResolverOffset, CONTEXT_FINGERPRINT, 1_500);
   assertNeighborhood(source, compactResolverOffset, COMPACT_FINGERPRINT, 3_500);
 
@@ -41,6 +50,7 @@ export function analyzeClaudeBinary(path, { version } = {}) {
     size: binary.length,
     sha256,
     architecture,
+    gatewayFilterOffset,
     contextResolverOffset,
     compactResolverOffset,
     contextCallCount: count(source, "rb("),

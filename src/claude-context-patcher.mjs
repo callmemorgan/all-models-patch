@@ -2,7 +2,10 @@ import { createHash } from "node:crypto";
 import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { analyzeClaudeBinary } from "./claude-context-analyzer.mjs";
 
-export const PATCHER_VERSION = 2;
+export const PATCHER_VERSION = 3;
+
+const ORIGINAL_GATEWAY_FILTER = "let l=a.data.data.filter((d)=>/^(claude|anthropic)/i.test(d.id));";
+const PATCHED_GATEWAY_FILTER = "let l=a.data.data;";
 
 const ORIGINAL_CONTEXT = "function Qxi(e,t){if(fg(e))return 1e6;if(t?.includes(bY.header)&&tG(e))return 1e6;if(Sx(e))return 1e6;let n=nkn(e);if(n!==null)return n;let r=Ne.CLAUDE_CODE_MAX_CONTEXT_TOKENS;if(r!==void 0&&r>0&&!oo(Bo(e)).startsWith(\"claude-\"))return r;return cFt}";
 const PATCHED_CONTEXT = "function Qxi(e,t){if(fg(e))return 1e6;if(t?.includes(bY.header)&&tG(e)||Sx(e))return 1e6;let n=+process.env[\"CLAUDE_ALL_CONTEXT_\"+e]||nkn(e);if(n)return n;let r=Ne.CLAUDE_CODE_MAX_CONTEXT_TOKENS;return r>0?r:cFt}";
@@ -14,6 +17,7 @@ export function patchClaudeBinary({ source, target, version }) {
   const analysis = analyzeClaudeBinary(source, { version });
   copyFileSync(source, target);
   const binary = readFileSync(target);
+  replaceUnique(binary, ORIGINAL_GATEWAY_FILTER, PATCHED_GATEWAY_FILTER);
   replaceUnique(binary, ORIGINAL_CONTEXT, PATCHED_CONTEXT);
   replaceUnique(binary, ORIGINAL_COMPACT, PATCHED_COMPACT);
   writeFileSync(target, binary, { mode: 0o755 });
@@ -27,10 +31,14 @@ export function patchClaudeBinary({ source, target, version }) {
 
 export function verifyPatchedBytes(path) {
   const source = readFileSync(path).toString("latin1");
-  if (count(source, PATCHED_CONTEXT) !== 1 || count(source, PATCHED_COMPACT) !== 1) {
+  if (
+    count(source, PATCHED_GATEWAY_FILTER) !== 1 ||
+    count(source, PATCHED_CONTEXT) !== 1 ||
+    count(source, PATCHED_COMPACT) !== 1
+  ) {
     throw new Error("patched resolver fingerprints do not match exactly once");
   }
-  if (source.includes(ORIGINAL_CONTEXT) || source.includes(ORIGINAL_COMPACT)) {
+  if (source.includes(ORIGINAL_GATEWAY_FILTER) || source.includes(ORIGINAL_CONTEXT) || source.includes(ORIGINAL_COMPACT)) {
     throw new Error("original resolver fingerprint remains after patching");
   }
 }

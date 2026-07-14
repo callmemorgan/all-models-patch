@@ -47,6 +47,7 @@ function build() {
       unsignedPatchedSha256: patch.unsignedPatchedSha256,
       patcherVersion: patch.patcherVersion,
       contextMapSchema: patch.contextMapSchema,
+      gatewayFilterOffset: patch.analysis.gatewayFilterOffset,
       contextResolverOffset: patch.analysis.contextResolverOffset,
       compactResolverOffset: patch.analysis.compactResolverOffset,
       builtAt: new Date().toISOString(),
