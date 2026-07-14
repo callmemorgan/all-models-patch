@@ -1,8 +1,8 @@
-import { createHash } from "node:crypto";
 import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { analyzeClaudeBinary } from "./claude-context-analyzer.mjs";
+import { applySupportPack, sha256, verifyAppliedRecipes } from "./support-pack.mjs";
 
-export const PATCHER_VERSION = 6;
+export const PATCHER_VERSION = 7;
 
 export const MODEL_PROVIDER_EMAILS = Object.freeze([
   Object.freeze({ pattern: /^(?:claude|anthropic)/i, email: "noreply@anthropic.com" }),
@@ -29,6 +29,13 @@ const PATCHED_CONTEXT = "function Qxi(e,t){if(fg(e))return 1e6;if(t?.includes(bY
 
 const ORIGINAL_COMPACT = "function N3(e,t){let n=oo(e),r=uT(),o=rb(e,r);if(process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW){let l=Sde(\"CLAUDE_CODE_AUTO_COMPACT_WINDOW\",process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW,sBn,glo);if(l.status!==\"invalid\"){let c=Math.max(sBn,l.effective);return{window:Math.min(o,c),configured:c,source:\"env\"}}}if(t!==void 0)return{window:Math.min(o,t),configured:t,source:\"settings\"};let s=Vpp(n);if(s.window!==null)return{window:Math.min(o,s.window),configured:s.window,source:\"clientdata\"};let i=ylo(n);if(i!==void 0)return{window:Math.min(o,i),configured:i,source:\"experiment\"};if(o<1e6&&(Gpp.has(n)||DVr(e,r)))return{window:Math.min(o,bne),configured:bne,source:\"model-default\"};let a=s.replacesDefault?void 0:Wpp(n);if(a!==void 0)return{window:Math.min(o,a),configured:a,source:\"model-default\"};return{window:o,configured:o,source:\"auto\"}}";
 const PATCHED_COMPACT = "function N3(e,t){let n=oo(e),r=uT(),o=rb(e,r),m=Math.min,p=process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW;if(p){let l=Sde(\"CLAUDE_CODE_AUTO_COMPACT_WINDOW\",p,sBn,glo);if(l.status!==\"invalid\"){let c=Math.max(sBn,l.effective);return{window:m(o,c),configured:c,source:\"env\"}}}if(t??=+process.env[\"CLAUDE_ALL_COMPACT_\"+e]||void 0,t!==void 0)return{window:m(o,t),configured:t,source:\"settings\"};let s=Vpp(n);if(s.window!==null)return{window:m(o,s.window),configured:s.window,source:\"clientdata\"};let i=ylo(n);if(i!==void 0)return{window:m(o,i),configured:i,source:\"experiment\"};if(o<1e6&&(Gpp.has(n)||DVr(e,r)))return{window:m(o,bne),configured:bne,source:\"model-default\"};let a=s.replacesDefault?void 0:Wpp(n);if(a!==void 0)return{window:m(o,a),configured:a,source:\"model-default\"};return{window:o,configured:o,source:\"auto\"}}";
+
+export const PATCH_RECIPES_2_1_197 = Object.freeze([
+  Object.freeze({ id: "attribution", original: ORIGINAL_ATTRIBUTION, replacement: PATCHED_ATTRIBUTION, expectedMatches: 1 }),
+  Object.freeze({ id: "gateway-filter", original: ORIGINAL_GATEWAY_FILTER, replacement: PATCHED_GATEWAY_FILTER, expectedMatches: 1 }),
+  Object.freeze({ id: "context-resolver", original: ORIGINAL_CONTEXT, replacement: PATCHED_CONTEXT, expectedMatches: 1 }),
+  Object.freeze({ id: "compact-resolver", original: ORIGINAL_COMPACT, replacement: PATCHED_COMPACT, expectedMatches: 1 }),
+]);
 
 export function patchClaudeBinary({ source, target, version }) {
   const analysis = analyzeClaudeBinary(source, { version });
@@ -71,6 +78,17 @@ export function fileSha256(path) {
   return sha256(readFileSync(path));
 }
 
+export function patchClaudeBinaryWithSupportPack({ source, target, supportPack }) {
+  const stock = readFileSync(source);
+  const result = applySupportPack(stock, supportPack);
+  writeFileSync(target, result.patched, { mode: 0o755 });
+  return result;
+}
+
+export function verifyPatchedBytesWithSupportPack(path, supportPack) {
+  verifyAppliedRecipes(readFileSync(path), supportPack);
+}
+
 function replaceUnique(binary, original, replacement) {
   const originalBytes = Buffer.from(original);
   const replacementBytes = Buffer.from(replacement);
@@ -89,8 +107,4 @@ function count(source, needle) {
     offset += needle.length;
   }
   return total;
-}
-
-function sha256(value) {
-  return createHash("sha256").update(value).digest("hex");
 }

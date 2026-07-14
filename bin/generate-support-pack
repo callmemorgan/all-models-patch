@@ -1,0 +1,68 @@
+#!/usr/bin/env node
+import { createHash } from "node:crypto";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, relative, resolve } from "node:path";
+import { analyzeClaudeBinary, KNOWN_BUILDS } from "../src/claude-context-analyzer.mjs";
+import { PATCH_RECIPES_2_1_197 } from "../src/claude-context-patcher.mjs";
+import { reviewedRecipesForClaude201 } from "../src/claude-2.1.201-recipes.mjs";
+import { applySupportPack, fileSha256 } from "../src/support-pack.mjs";
+
+const version = process.argv[2] ?? "2.1.197";
+const source = resolve(process.argv[3] ?? `${process.env.HOME}/.local/share/claude-stable/versions/${version}/claude`);
+const output = resolve(process.argv[4] ?? `support/darwin-arm64/${version}.json`);
+
+const known = KNOWN_BUILDS[version];
+if (!known) throw new Error(`Claude ${version} is not a known build`);
+const analysis = analyzeClaudeBinary(source, { version });
+const stock = readFileSync(source);
+const recipes = version === "2.1.197"
+  ? PATCH_RECIPES_2_1_197
+  : version === "2.1.201"
+    ? reviewedRecipesForClaude201(stock.toString("latin1"))
+    : (() => { throw new Error(`no reviewed recipe set is registered for Claude ${version}`); })();
+const draft = {
+  schemaVersion: 1,
+  id: `darwin-arm64/${version}/${analysis.sha256}`,
+  claudeVersion: version,
+  platform: "darwin-arm64",
+  architecture: "arm64",
+  patchEngineSchema: 1,
+  patcherVersion: version === "2.1.197" ? 6 : 7,
+  stock: {
+    sha256: analysis.sha256,
+    size: analysis.size,
+    appleTeamIdentifier: "Q6L2SF6YDW",
+  },
+  expectedUnsignedPatchedSha256: "0".repeat(64),
+  analysis: {
+    attributionOffset: analysis.attributionOffset,
+    gatewayFilterOffset: analysis.gatewayFilterOffset,
+    contextResolverOffset: analysis.contextResolverOffset,
+    compactResolverOffset: analysis.compactResolverOffset,
+    contextCallCount: analysis.contextCallCount,
+    compactCallCount: analysis.compactCallCount,
+  },
+  recipes,
+};
+
+// The engine validates the expected output hash, so compute it once without
+// weakening the checked-in pack schema.
+const patched = Buffer.from(stock);
+for (const recipe of recipes) {
+  const original = Buffer.from(recipe.original);
+  const replacement = Buffer.from(recipe.replacement);
+  const offset = patched.indexOf(original);
+  if (offset < 0 || patched.indexOf(original, offset + 1) >= 0) throw new Error(`recipe is missing or ambiguous: ${recipe.id}`);
+  patched.fill(0x20, offset, offset + original.length);
+  replacement.copy(patched, offset);
+}
+draft.expectedUnsignedPatchedSha256 = fileHash(patched);
+applySupportPack(stock, draft);
+
+mkdirSync(dirname(output), { recursive: true });
+writeFileSync(output, `${JSON.stringify(draft, null, 2)}\n`, { mode: 0o644 });
+console.log(`wrote ${relative(process.cwd(), output)} (${fileSha256(output)})`);
+
+function fileHash(value) {
+  return createHash("sha256").update(value).digest("hex");
+}

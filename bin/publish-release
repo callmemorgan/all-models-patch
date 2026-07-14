@@ -1,0 +1,22 @@
+#!/bin/zsh
+set -euo pipefail
+
+readonly root="${0:A:h:h}"
+readonly version="$(node -p 'require(process.argv[1]).version' "$root/package.json")"
+readonly tag="v$version"
+readonly archive="$root/dist/all-models-patch-$version-darwin-arm64.tar.gz"
+readonly manifest="$root/dist/release-manifest.json"
+readonly signature="$manifest.sig"
+readonly signers="$root/config/release-signers"
+
+if [[ -n "$(git -C "$root" status --porcelain -- . ':(exclude)plugin/**')" ]]; then
+  print -u2 "publish-release: non-plugin worktree changes must be committed first"
+  exit 1
+fi
+for path in "$archive" "$manifest" "$signature" "$signers"; do
+  [[ -f "$path" ]] || { print -u2 "publish-release: missing $path; run bin/prepare-release"; exit 1; }
+done
+
+git -C "$root" tag -s "$tag" -m "all-models-patch $version"
+git -C "$root" push origin "$tag"
+gh release create "$tag" "$archive" "$manifest" "$signature" "$signers" --repo callmemorgan/all-models-patch --title "all-models-patch $version" --generate-notes

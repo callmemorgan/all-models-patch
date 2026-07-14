@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { analyzeClaudeBinary } from "../src/claude-context-analyzer.mjs";
-import { fileSha256, verifyPatchedBytes } from "../src/claude-context-patcher.mjs";
+import { fileSha256, verifyPatchedBytes, verifyPatchedBytesWithSupportPack } from "../src/claude-context-patcher.mjs";
+import { loadSupportCatalog, loadSupportPack } from "../src/stable-manager.mjs";
 
 const root = `${process.env.HOME}/.local/share/claude-all/current`;
 const runtime = join(root, "claude");
@@ -10,14 +12,33 @@ const manifestPath = join(root, "manifest.json");
 
 try {
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  const stock = `${process.env.HOME}/.local/share/claude-stable/current/claude`;
-  const analysis = analyzeClaudeBinary(stock, { version: manifest.claudeVersion });
-  if (analysis.sha256 !== manifest.stockSha256) throw new Error("stock runtime changed");
-  if (fileSha256(runtime) !== manifest.patchedSha256) throw new Error("patched runtime hash mismatch");
-  verifyPatchedBytes(runtime);
+  if (manifest.schemaVersion === 2) verifyPortfolioRuntime(manifest);
+  else verifyLegacyRuntime(manifest);
   process.stdout.write(runtime);
 } catch (error) {
   console.error(`claude-all: patched runtime verification failed: ${error.message}`);
   console.error("Run: patch-claude-all-contexts build");
   process.exit(1);
+}
+
+function verifyPortfolioRuntime(manifest) {
+  const toolRoot = process.env.ALL_MODELS_PATCH_HOME ?? resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const { catalog } = loadSupportCatalog(toolRoot);
+  const entry = catalog.packs.find((candidate) => candidate.id === manifest.supportPackId);
+  if (!entry) throw new Error(`support pack is not installed: ${manifest.supportPackId}`);
+  if (entry.status !== "active") throw new Error(`support pack is ${entry.status}: ${manifest.supportPackId}`);
+  const { pack } = loadSupportPack(toolRoot, entry);
+  if (fileSha256(manifest.stockPath) !== manifest.stockSha256 || manifest.stockSha256 !== pack.stock.sha256) {
+    throw new Error("versioned stock runtime changed");
+  }
+  if (fileSha256(runtime) !== manifest.patchedSha256) throw new Error("patched runtime hash mismatch");
+  verifyPatchedBytesWithSupportPack(runtime, pack);
+}
+
+function verifyLegacyRuntime(manifest) {
+  const stock = `${process.env.HOME}/.local/share/claude-stable/current/claude`;
+  const analysis = analyzeClaudeBinary(stock, { version: manifest.claudeVersion });
+  if (analysis.sha256 !== manifest.stockSha256) throw new Error("stock runtime changed");
+  if (fileSha256(runtime) !== manifest.patchedSha256) throw new Error("patched runtime hash mismatch");
+  verifyPatchedBytes(runtime);
 }

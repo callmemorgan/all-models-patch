@@ -10,7 +10,7 @@ import {
   verifyPatchedBytes,
 } from "../src/claude-context-patcher.mjs";
 
-const stable = `${process.env.HOME}/.local/share/claude-stable/current/claude`;
+const stable = `${process.env.HOME}/.local/share/claude-stable/versions/2.1.197/claude`;
 
 test("patches gateway discovery to retain real provider model IDs", () => {
   const directory = mkdtempSync(join(tmpdir(), "claude-context-patcher-"));
@@ -20,7 +20,7 @@ test("patches gateway discovery to retain real provider model IDs", () => {
   verifyPatchedBytes(target);
 
   const patched = readFileSync(target).toString("latin1");
-  assert.equal(PATCHER_VERSION, 6);
+  assert.equal(PATCHER_VERSION, 7);
   assert.equal(result.analysis.attributionOffset, 213451965);
   assert.equal(result.analysis.gatewayFilterOffset, 204861577);
   assert.equal(patched.includes("let l=a.data.data;"), true);

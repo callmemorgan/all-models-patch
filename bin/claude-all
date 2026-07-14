@@ -5,9 +5,16 @@ readonly key_file="$HOME/.cli-proxy-api/client-key"
 readonly claude_config_dir="$HOME/.claude-all"
 readonly agents_file="$HOME/.cli-proxy-api/claude-all-agents.json"
 readonly context_map="$HOME/.cli-proxy-api/claude-all-contexts.json"
-readonly verify_runtime="$HOME/.local/bin/verify-claude-all-runtime"
-readonly prepare_context="$HOME/.local/bin/prepare-claude-context-env"
-readonly swarm_plugin="/Users/morgan/personal/all-models-patch/plugin"
+readonly tool_root="${ALL_MODELS_PATCH_HOME:-${0:A:h:h}}"
+readonly swarm_plugin="$tool_root/plugin"
+readonly manager="$HOME/.local/bin/all-models-patch"
+
+if [[ -x "$manager" ]]; then
+  update_warning="$($manager status --brief 2>/dev/null || true)"
+  if [[ -n "$update_warning" ]]; then
+    print -u2 -- "$update_warning"
+  fi
+fi
 
 if [[ ! -r "$key_file" ]]; then
   print -u2 "claude-all: missing proxy credential: $key_file"
@@ -25,8 +32,8 @@ if [[ ! -r "$context_map" ]]; then
   exit 1
 fi
 
-if [[ ! -x "$verify_runtime" || ! -x "$prepare_context" ]]; then
-  print -u2 "claude-all: runtime verification helpers are not installed"
+if [[ ! -x "$manager" ]]; then
+  print -u2 "claude-all: management runtime is not installed: $manager"
   exit 1
 fi
 
@@ -35,8 +42,8 @@ if [[ ! -r "$swarm_plugin/.claude-plugin/plugin.json" || ! -r "$swarm_plugin/com
   exit 1
 fi
 
-runtime="$($verify_runtime)"
-context_env=("${(@f)$($prepare_context "$context_map")}")
+runtime="$($manager runtime-path)"
+context_env=("${(@f)$($manager context-env "$context_map")}")
 
 export DISABLE_UPDATES=1
 export CLAUDE_CONFIG_DIR="$claude_config_dir"

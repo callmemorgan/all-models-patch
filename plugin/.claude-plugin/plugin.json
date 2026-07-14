@@ -1,5 +1,5 @@
 {
   "name": "claude-all-swarm",
-  "version": "0.1.0",
-  "description": "Kimi-inspired one-shot swarm orchestration for claude-all"
+  "version": "0.2.0",
+  "description": "Kimi-inspired one-shot swarm orchestration for claude-all, with agent capability profiles and team-composition presets"
 }

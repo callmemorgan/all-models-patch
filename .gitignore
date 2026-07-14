@@ -2,3 +2,5 @@
 .env
 protocol/
 runtime/
+dist/
+.*.bun-build

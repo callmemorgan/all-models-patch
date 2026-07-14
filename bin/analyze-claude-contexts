@@ -1,14 +1,16 @@
 #!/usr/bin/env node
-import { analyzeClaudeBinary } from "../src/claude-context-analyzer.mjs";
+import { realpathSync } from "node:fs";
+import { basename, dirname } from "node:path";
+import { analyzeClaudeBinary, inspectClaudeCandidate } from "../src/claude-context-analyzer.mjs";
 
 const args = process.argv.slice(2);
 const path = args.find((arg) => !arg.startsWith("--")) ?? `${process.env.HOME}/.local/share/claude-stable/current/claude`;
 const versionFlag = args.find((arg) => arg.startsWith("--version="));
-const version = versionFlag?.slice("--version=".length) ?? "2.1.197";
+const version = versionFlag?.slice("--version=".length) ?? basename(dirname(realpathSync(path)));
 
 try {
-  const result = analyzeClaudeBinary(path, { version });
-  console.log(JSON.stringify({ status: "verified", ...result }, null, 2));
+  const result = args.includes("--candidate") ? inspectClaudeCandidate(path) : analyzeClaudeBinary(path, { version });
+  console.log(JSON.stringify(args.includes("--candidate") ? result : { status: "verified", ...result }, null, 2));
 } catch (error) {
   console.error(`analyze-claude-contexts: ${error.message}`);
   process.exitCode = 1;

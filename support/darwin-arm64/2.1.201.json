@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "darwin-arm64/2.1.201/a0852d76afc47b30f5cb0b7625ec9a7714cb189f2eeef6c28c77e2be954fb7fd",
+  "claudeVersion": "2.1.201",
+  "platform": "darwin-arm64",
+  "architecture": "arm64",
+  "patchEngineSchema": 1,
+  "patcherVersion": 7,
+  "stock": {
+    "sha256": "a0852d76afc47b30f5cb0b7625ec9a7714cb189f2eeef6c28c77e2be954fb7fd",
+    "size": 231708784,
+    "appleTeamIdentifier": "Q6L2SF6YDW"
+  },
+  "expectedUnsignedPatchedSha256": "a4a5392fcbd52bfb4ce78fccdd546f603f5a147aea177cc32b691766f8994c77",
+  "analysis": {
+    "attributionOffset": 215740843,
+    "gatewayFilterOffset": 210059611,
+    "contextResolverOffset": 210833177,
+    "compactResolverOffset": 219494315,
+    "contextCallCount": 20,
+    "compactCallCount": 14
+  },
+  "recipes": [
+    {
+      "id": "attribution",
+      "original": "function lJp(){let e=Is(),t=kA(e)?fxn(K4e.firstParty):uza(e)?fxn(e):\"Claude\",n=`\\uD83E\\uDD16 Generated with [Claude Code](${X8e})`,r=`Co-Authored-By: ${t} <noreply@anthropic.com>`,o=Hr(),s=o.attribution;if(s&&(s.commit!==void 0||s.pr!==void 0))return{commit:s.commit??r,pr:s.pr??n};if(o.includeCoAuthoredBy===!1)return{commit:\"\",pr:\"\"};return{commit:r,pr:n}}function uza(e){if(VJ(e)===null)return!1;let t=OIe(e);if(t!==e&&Object.hasOwn(Kce,t))return!0;let n=oo(e),r=Ud(e).toLowerCase(),o=r.indexOf(n),s=n.length;if(o===-1&&n.endsWith(\"-0\")){let u=n.slice(0,-2);o=r.indexOf(u),s=u.length}if(o===-1){if(!e.includes(\"application-inference-profile\"))return!1;let u=CHt(Ud(e));return!!u&&uza(u)}let i=r.slice(0,o),a=r.slice(o+s),l=i===\"\"||/[./]$/.test(i),c=/^(?:-fast|-latest)?(?:-v\\d+@\\d{8}|[-@]\\d{8})?(?:-v\\d+(?::\\d+)?)?$/.test(a);return l&&c}",
+      "replacement": "function lJp(){let e=Is(),a=uza(e),t=a?fxn(e):e,m=a?\"noreply@anthropic.com\":/^(gpt|codex)/.test(e)?\"noreply@openai.com\":/^gemini/.test(e)?\"gemini-code-assist[bot]@users.noreply.github.com\":/^grok/.test(e)?\"grok@x.ai\":/^kimi/.test(e)?\"noreply@moonshot.ai\":/^minimax/.test(e)?\"noreply@minimax.io\":/^glm/.test(e)?\"noreply@z.ai\":\"noreply@unknown.invalid\",n=`\\uD83E\\uDD16 Generated with [Claude Code](${X8e})`,r=`Generated-With: @callmemorgan/all-models-patch\\nCo-Authored-By: ${t} <${m}>`,o=Hr(),s=o.attribution;if(s&&(s.commit!==void 0||s.pr!==void 0))return{commit:s.commit??r,pr:s.pr??n};if(o.includeCoAuthoredBy===!1)return{commit:\"\",pr:\"\"};return{commit:r,pr:n}}function uza(e){return /(^|[./])(?:claude|anthropic)[-./]/i.test(e)}",
+      "expectedMatches": 1
+    },
+    {
+      "id": "gateway-filter",
+      "original": "let l=a.data.data.filter((d)=>/^(claude|anthropic)/i.test(d.id));",
+      "replacement": "let l=a.data.data;",
+      "expectedMatches": 1
+    },
+    {
+      "id": "context-resolver",
+      "original": "function _1i(e,t){if(kg(e))return 1e6;if(t?.includes(qJ.header)&&uV(e))return 1e6;if(lk(e))return 1e6;let n=SDn(e);if(n!==null)return n;let r=Ie.CLAUDE_CODE_MAX_CONTEXT_TOKENS;if(r!==void 0&&r>0&&!oo(jo(e)).startsWith(\"claude-\"))return r;return $$t}",
+      "replacement": "function _1i(e,t){if(kg(e))return 1e6;if(t?.includes(qJ.header)&&uV(e)||lk(e))return 1e6;let n=+process.env[\"CLAUDE_ALL_CONTEXT_\"+e]||SDn(e);if(n)return n;let r=Ie.CLAUDE_CODE_MAX_CONTEXT_TOKENS;return r>0?r:$$t}",
+      "expectedMatches": 1
+    },
+    {
+      "id": "compact-resolver",
+      "original": "function Rq(e,t){let n=oo(e),r=wT(),o=Tb(e,r);if(process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW){let l=ipe(\"CLAUDE_CODE_AUTO_COMPACT_WINDOW\",process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW,Uar,Iqo);if(l.status!==\"invalid\"){let c=Math.max(Uar,l.effective);return{window:Math.min(o,c),configured:c,source:\"env\"}}}if(t!==void 0)return{window:Math.min(o,t),configured:t,source:\"settings\"};let s=qWm(n);if(s.window!==null)return{window:Math.min(o,s.window),configured:s.window,source:\"clientdata\"};let i=Dqo(n);if(i!==void 0)return{window:Math.min(o,i),configured:i,source:\"experiment\"};if(o<1e6&&($Wm.has(n)||JXr(e,r)))return{window:Math.min(o,Ore),configured:Ore,source:\"model-default\"};let a=s.replacesDefault?void 0:BWm(n);if(a!==void 0)return{window:Math.min(o,a),configured:a,source:\"model-default\"};return{window:o,configured:o,source:\"auto\"}}",
+      "replacement": "function Rq(e,t){let n=oo(e),r=wT(),o=Tb(e,r),m=Math.min,p=process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW;if(p){let l=ipe(\"CLAUDE_CODE_AUTO_COMPACT_WINDOW\",p,Uar,Iqo);if(l.status!==\"invalid\"){let c=Math.max(Uar,l.effective);return{window:m(o,c),configured:c,source:\"env\"}}}if(t??=+process.env[\"CLAUDE_ALL_COMPACT_\"+e]||void 0,t!==void 0)return{window:m(o,t),configured:t,source:\"settings\"};let s=qWm(n);if(s.window!==null)return{window:m(o,s.window),configured:s.window,source:\"clientdata\"};let i=Dqo(n);if(i!==void 0)return{window:m(o,i),configured:i,source:\"experiment\"};if(o<1e6&&($Wm.has(n)||JXr(e,r)))return{window:m(o,Ore),configured:Ore,source:\"model-default\"};let a=s.replacesDefault?void 0:BWm(n);if(a!==void 0)return{window:m(o,a),configured:a,source:\"model-default\"};return{window:o,configured:o,source:\"auto\"}}",
+      "expectedMatches": 1
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+#!/usr/bin/env node
+import { execFileSync } from "node:child_process";
+import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { basename, join, resolve } from "node:path";
+import { fileSha256 } from "../src/support-pack.mjs";
+import { RELEASE_SIGNING_NAMESPACE, validateReleaseManifest } from "../src/release-manifest.mjs";
+
+const root = resolve(new URL("..", import.meta.url).pathname);
+const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+const catalog = JSON.parse(readFileSync(join(root, "support", "catalog.json"), "utf8"));
+const version = packageJson.version;
+const dist = join(root, "dist");
+const stage = join(dist, `all-models-patch-${version}`);
+const archive = join(dist, `all-models-patch-${version}-darwin-arm64.tar.gz`);
+const signingKey = resolve(process.env.ALL_MODELS_PATCH_SIGNING_KEY ?? `${process.env.HOME}/.ssh/id_ed25519_signing`);
+
+if (catalog.managerVersion !== version) throw new Error("support catalog manager version does not match package version");
+rmSync(dist, { recursive: true, force: true });
+mkdirSync(join(stage, "bin"), { recursive: true });
+
+execFileSync("/opt/homebrew/bin/bun", ["build", "--compile", join(root, "src", "manager-cli.mjs"), "--outfile", join(stage, "bin", "all-models-patch")], { stdio: "inherit" });
+for (const path of [
+  "bin/claude-all",
+  "bin/claude-stable",
+  "bin/install-all-models-patch",
+  "config",
+  "support",
+  "LICENSE",
+  "MAINTAINING.md",
+  "README.md",
+  "SECURITY.md",
+]) {
+  execFileSync("/usr/bin/ditto", [join(root, path), join(stage, path)], { stdio: "inherit" });
+}
+const pluginArchive = join(dist, ".plugin.tar");
+execFileSync("/usr/bin/git", ["-C", root, "archive", "--format=tar", `--output=${pluginArchive}`, "HEAD", "plugin"], { stdio: "inherit" });
+execFileSync("/usr/bin/tar", ["-xf", pluginArchive, "-C", stage], { stdio: "inherit" });
+rmSync(pluginArchive, { force: true });
+execFileSync("/bin/chmod", ["+x", join(stage, "bin", "all-models-patch"), join(stage, "bin", "claude-all"), join(stage, "bin", "claude-stable"), join(stage, "bin", "install-all-models-patch")]);
+execFileSync("/usr/bin/tar", ["-czf", archive, "-C", dist, basename(stage)], { env: { ...process.env, COPYFILE_DISABLE: "1" }, stdio: "inherit" });
+
+const manifest = validateReleaseManifest({
+  schemaVersion: 1,
+  releaseSequence: catalog.releaseSequence,
+  managerVersion: version,
+  publishedAt: new Date().toISOString(),
+  assets: {
+    bundle: {
+      name: basename(archive),
+      sha256: fileSha256(archive),
+      size: statSync(archive).size,
+    },
+  },
+});
+const manifestPath = join(dist, "release-manifest.json");
+writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o644 });
+execFileSync("/usr/bin/ssh-keygen", ["-Y", "sign", "-f", signingKey, "-n", RELEASE_SIGNING_NAMESPACE, manifestPath], { stdio: "inherit" });
+console.log(JSON.stringify({ archive, manifest: manifestPath, signature: `${manifestPath}.sig` }, null, 2));

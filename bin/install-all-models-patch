@@ -1,0 +1,53 @@
+#!/bin/zsh
+set -euo pipefail
+
+readonly source_root="${0:A:h:h}"
+readonly manager_source="$source_root/bin/all-models-patch"
+readonly version="$(ALL_MODELS_PATCH_HOME="$source_root" "$manager_source" doctor --json | /usr/bin/sed -n 's/.*"managerVersion": "\([^"]*\)".*/\1/p')"
+readonly install_root="$HOME/.local/share/all-models-patch"
+readonly release_root="$install_root/releases/$version"
+readonly temporary="$install_root/.release-$version-$$"
+readonly local_bin="$HOME/.local/bin"
+readonly launch_agents="$HOME/Library/LaunchAgents"
+readonly logs="$HOME/Library/Logs/all-models-patch"
+readonly label="com.callmemorgan.all-models-patch.stable-monitor"
+readonly plist="$launch_agents/$label.plist"
+
+if [[ "$(uname -s)" != "Darwin" || "$(uname -m)" != "arm64" ]]; then
+  print -u2 "all-models-patch: only Apple Silicon macOS is supported"
+  exit 1
+fi
+if [[ -z "$version" || ! -x "$manager_source" ]]; then
+  print -u2 "all-models-patch: release archive is incomplete"
+  exit 1
+fi
+
+/bin/rm -rf "$temporary"
+/bin/mkdir -p "$install_root/releases" "$local_bin" "$launch_agents" "$logs"
+/usr/bin/ditto "$source_root" "$temporary"
+/usr/bin/xattr -dr com.apple.quarantine "$temporary" 2>/dev/null || true
+/usr/bin/codesign --force --sign - "$temporary/bin/all-models-patch"
+ALL_MODELS_PATCH_HOME="$temporary" "$temporary/bin/all-models-patch" doctor >/dev/null
+/bin/rm -rf "$release_root"
+/bin/mv "$temporary" "$release_root"
+
+readonly next_current="$install_root/.current-$$"
+/bin/rm -f "$next_current"
+/bin/ln -s "$release_root" "$next_current"
+/bin/mv -hf "$next_current" "$install_root/current"
+/bin/ln -sfn "$install_root/current/bin/all-models-patch" "$local_bin/all-models-patch"
+/bin/ln -sfn "$install_root/current/bin/claude-all" "$local_bin/claude-all"
+/bin/ln -sfn "$install_root/current/bin/claude-stable" "$local_bin/claude-stable"
+
+/usr/bin/ditto "$source_root/config/stable-monitor.plist" "$plist"
+/usr/libexec/PlistBuddy -c "Set :ProgramArguments:0 $local_bin/all-models-patch" "$plist"
+/usr/libexec/PlistBuddy -c "Set :StandardOutPath $logs/stable-monitor.stdout.log" "$plist"
+/usr/libexec/PlistBuddy -c "Set :StandardErrorPath $logs/stable-monitor.stderr.log" "$plist"
+/usr/bin/plutil -lint "$plist" >/dev/null
+
+if [[ "${1:-}" != "--self-update" ]]; then
+  /bin/launchctl bootout "gui/$UID/$label" 2>/dev/null || true
+  /bin/launchctl bootstrap "gui/$UID" "$plist"
+  "$local_bin/all-models-patch" check --no-self-update
+fi
+print "Installed all-models-patch $version"
