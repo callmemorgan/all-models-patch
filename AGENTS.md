@@ -10,6 +10,11 @@ patch for Apple Silicon macOS. Read `README.md`, `MAINTAINING.md`, and
   Stable build; do not retrofit new features into older support packs.
 - Older packs may remain available for operational rollback, but their behavior
   stays frozen. A rollback does not promise features introduced later.
+- Selectable features are forward-only too. Add profile metadata only in a new
+  current-Stable support-pack revision; never retrofit historical packs.
+- Consumer configuration defaults to `All`. Preserve an existing selection on
+  upgrade, and treat dependency-invalid selections as errors rather than
+  silently enabling or disabling another feature.
 - Keep the active last-known-good runtime until a successor has passed exact
   binary review and live verification.
 - Never edit or delete a published support pack. New recipe revisions receive a
@@ -21,6 +26,9 @@ patch for Apple Silicon macOS. Read `README.md`, `MAINTAINING.md`, and
 - Never authorize a build by version, offset, or semantic resemblance alone.
 - Consumer activation requires an exact active support pack matching platform,
   version, stock size, and stock SHA-256.
+- Every permitted selectable-feature combination must have its own reviewed
+  deterministic output hash in the support pack. Disabled recipes must remain
+  byte-for-byte stock and are verified as such.
 - Keep stock, patched, and manager releases versioned and promote only through
   atomic symlink replacement.
 - Do not weaken release signature, Apple signature, hash, architecture,

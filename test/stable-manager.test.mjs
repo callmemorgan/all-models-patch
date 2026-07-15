@@ -25,6 +25,11 @@ test("validates the Stable pointer and darwin-arm64 manifest", async () => {
   assert.equal(descriptor.platform.size, 123);
 });
 
+test("manager paths isolate persistent feature configuration", () => {
+  const paths = managerPaths("/tmp/example-home", "/tmp/example-state", "/tmp/example-config");
+  assert.equal(paths.featureConfigPath, "/tmp/example-config/all-models-patch/features.json");
+});
+
 test("consumer checks do not download unsupported Stable binaries", async () => {
   const home = mkdtempSync(join(tmpdir(), "all-models-patch-home-"));
   const toolRoot = join(home, "tool");
@@ -84,13 +89,16 @@ test("uninstall removes only managed assets and preserves profiles", () => {
   mkdirSync(join(paths.managerRoot, "current", "bin"), { recursive: true });
   mkdirSync(paths.patchedRoot, { recursive: true });
   mkdirSync(paths.stockRoot, { recursive: true });
+  mkdirSync(paths.configDirectory, { recursive: true });
   mkdirSync(paths.localBin, { recursive: true });
   mkdirSync(join(home, ".claude-all"), { recursive: true });
   writeFileSync(executable, "manager");
+  writeFileSync(paths.featureConfigPath, JSON.stringify({ schemaVersion: 1, enabled: [] }));
   symlinkSync(executable, join(paths.localBin, "all-models-patch"));
   uninstallAllModelsPatch({ paths, unloadLaunchAgent: false });
   assert.equal(existsSync(paths.managerRoot), false);
   assert.equal(existsSync(paths.patchedRoot), false);
   assert.equal(existsSync(paths.stockRoot), false);
+  assert.equal(existsSync(paths.configDirectory), false);
   assert.equal(existsSync(join(home, ".claude-all")), true);
 });

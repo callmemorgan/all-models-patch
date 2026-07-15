@@ -1,8 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { loadContextEnvironment } from "./context-map.mjs";
+import { ALL_FEATURE_IDS, FEATURE_GROUPS, effectiveFeatureConfig, featureReport, readFeatureConfig, writeFeatureConfig } from "./features.mjs";
 import { maybeSelfUpdate } from "./self-update.mjs";
 import {
   activateSupportedVersion,
@@ -18,7 +20,7 @@ import {
 } from "./stable-manager.mjs";
 
 const args = process.argv.slice(2);
-const command = args.find((arg) => !arg.startsWith("--")) ?? "status";
+const command = args[0]?.startsWith("--") ? "status" : (args[0] ?? "status");
 const json = args.includes("--json");
 const quiet = args.includes("--quiet");
 const brief = args.includes("--brief");
@@ -53,6 +55,21 @@ try {
       if (warning) process.stdout.write(`${warning}\n`);
     } else if (json) process.stdout.write(`${JSON.stringify(state, null, 2)}\n`);
     else process.stdout.write(`${formatStatus(state)}\n`);
+  } else if (command === "features") {
+    const report = featureReport(effectiveFeatureConfig(paths.featureConfigPath));
+    if (json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+    else process.stdout.write(`${formatFeatures(report)}\n`);
+  } else if (command === "configure") {
+    const existing = readFeatureConfig(paths.featureConfigPath);
+    if (args.includes("--if-unset") && existing) {
+      if (!quiet) process.stdout.write("Feature selection already configured; preserving it.\n");
+    } else {
+      const enabled = await requestedFeatures(args, existing?.enabled ?? ALL_FEATURE_IDS);
+      const report = featureReport(writeFeatureConfig(paths.featureConfigPath, enabled));
+      if (json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+      else if (!quiet) process.stdout.write(`${formatFeatures(report)}\n`);
+      if (!args.includes("--no-update")) await reconcileStable({ toolRoot, paths, quiet: quiet || json });
+    }
   } else if (command === "doctor") {
     const { path, catalog } = loadSupportCatalog(toolRoot);
     const report = {
@@ -102,4 +119,68 @@ function resolveToolRoot() {
   const installedRoot = resolve(dirname(executable), "..");
   if (existsSync(resolve(installedRoot, "support", "catalog.json"))) return installedRoot;
   throw new Error("could not locate the installed support catalog");
+}
+
+async function requestedFeatures(argv, current) {
+  if (argv.includes("--all")) return [...ALL_FEATURE_IDS];
+  if (argv.includes("--none")) return [];
+  let enabled = new Set(current);
+  const only = optionValue(argv, "--only");
+  if (only !== null) enabled = new Set(parseFeatureList(only));
+  for (const id of parseFeatureList(optionValue(argv, "--enable") ?? "")) enabled.add(id);
+  for (const id of parseFeatureList(optionValue(argv, "--disable") ?? "")) enabled.delete(id);
+  if (only !== null || argv.includes("--enable") || argv.includes("--disable")) return [...enabled];
+  if (!process.stdin.isTTY || !process.stdout.isTTY) return [...ALL_FEATURE_IDS];
+
+  const readline = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const defaultProfile = current.length === ALL_FEATURE_IDS.length ? "all" : "some";
+    process.stdout.write("Choose a patch profile:\n\n  All   Enable every feature (recommended)\n  Some  Choose features individually\n\n");
+    const profile = await askProfile(readline, defaultProfile);
+    if (profile === "all") return [...ALL_FEATURE_IDS];
+
+    process.stdout.write("\nChoose individual features. Press Enter to keep each current setting.\n\n");
+    enabled = new Set();
+    for (const feature of FEATURE_GROUPS) {
+      if (feature.requires.some((requirement) => !enabled.has(requirement))) {
+        process.stdout.write(`${feature.name}: disabled (requires ${feature.requires.join(", ")})\n`);
+        continue;
+      }
+      const defaultEnabled = current.includes(feature.id);
+      const answer = (await readline.question(`${feature.name} — ${feature.description}? [${defaultEnabled ? "Y/n" : "y/N"}] `)).trim().toLowerCase();
+      if (answer === "" ? defaultEnabled : answer === "y" || answer === "yes") enabled.add(feature.id);
+    }
+  } finally {
+    readline.close();
+  }
+  return [...enabled];
+}
+
+async function askProfile(readline, defaultProfile) {
+  while (true) {
+    const label = defaultProfile === "all" ? "All" : "Some";
+    const answer = (await readline.question(`Profile: All or Some? [${label}] `)).trim().toLowerCase();
+    if (answer === "") return defaultProfile;
+    if (answer === "a" || answer === "all") return "all";
+    if (answer === "s" || answer === "some") return "some";
+    process.stdout.write("Enter All or Some.\n");
+  }
+}
+
+function optionValue(argv, name) {
+  const index = argv.indexOf(name);
+  if (index < 0) return null;
+  const value = argv[index + 1];
+  if (!value || value.startsWith("--")) throw new Error(`${name} requires a comma-separated feature list`);
+  return value;
+}
+
+function parseFeatureList(value) {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function formatFeatures(report) {
+  const lines = [`Profile: ${report.profile === "all" ? "All" : "Custom"}`];
+  for (const feature of report.features) lines.push(`${feature.enabled ? "yes" : "no "}  ${feature.id} — ${feature.name}`);
+  return lines.join("\n");
 }

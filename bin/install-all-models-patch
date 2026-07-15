@@ -46,6 +46,7 @@ readonly next_current="$install_root/.current-$$"
 /usr/bin/plutil -lint "$plist" >/dev/null
 
 if [[ "${1:-}" != "--self-update" ]]; then
+  "$local_bin/all-models-patch" configure --if-unset --no-update
   /bin/launchctl bootout "gui/$UID/$label" 2>/dev/null || true
   /bin/launchctl bootstrap "gui/$UID" "$plist"
   "$local_bin/all-models-patch" check --no-self-update

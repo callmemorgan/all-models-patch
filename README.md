@@ -108,7 +108,38 @@ The installer creates:
 ~/Library/LaunchAgents/com.callmemorgan.all-models-patch.stable-monitor.plist
 ```
 
-It also performs the first Stable reconciliation immediately.
+On first install it offers **All** (recommended) or **Some**, then performs the
+first Stable reconciliation. Pressing Enter once selects **All**, as does a
+non-interactive install. Choosing **Some** opens a Y/n choice for each feature.
+Existing selections are preserved on upgrades.
+
+## Feature selection
+
+The patch is split into five independently selectable groups:
+
+| Feature | Benefit | Trade-off |
+| --- | --- | --- |
+| `discovery` | Shows real foreign-model IDs from the gateway | Changes Claude Code's native Anthropic-only filtering |
+| `pricing` | Reports curated list-equivalent costs | Requires `discovery`; estimates public list prices rather than subscription billing |
+| `context` | Uses route-specific context and compaction limits | Gateway metadata can override Claude Code's native model defaults |
+| `attribution` | Credits the active model in generated commits | Changes generated commit trailers |
+| `set-goal` | Exposes the native goal runtime to the model | Gives the model an additional autonomous planning tool |
+
+The default profile is **All**. To inspect or change it later:
+
+```bash
+all-models-patch features
+all-models-patch configure
+all-models-patch configure --all
+all-models-patch configure --only discovery,context
+all-models-patch configure --none
+```
+
+Changing the selection rebuilds and re-verifies the current runtime. Pricing
+cannot be selected without discovery. The current forward-only support pack
+contains an exact deterministic hash for every permitted combination (24
+profiles); arbitrary or incomplete combinations fail closed. Historical
+rollback packs retain the fixed feature set they originally shipped with.
 
 ## Stable updates
 
@@ -138,8 +169,8 @@ manager automatically:
 3. downloads Claude Code directly from Anthropic;
 4. verifies manifest size and SHA-256, ARM64 architecture, and Apple Developer
    ID team `Q6L2SF6YDW`;
-5. applies every reviewed replacement exactly once;
-6. verifies the deterministic unsigned patched hash;
+5. applies every selected reviewed replacement exactly once;
+6. verifies the deterministic unsigned hash authorized for that feature profile;
 7. ad-hoc signs and smoke-tests the local result;
 8. atomically promotes it while retaining verified rollback versions.
 
@@ -160,6 +191,8 @@ all-models-patch status
 all-models-patch status --json
 all-models-patch check
 all-models-patch update
+all-models-patch features
+all-models-patch configure
 all-models-patch doctor
 all-models-patch rollback 2.1.197
 all-models-patch uninstall --yes
@@ -218,8 +251,8 @@ the previously active `claude-all` runtime.
 `DISABLE_UPDATES=1`; the project manager, not Claude Code's built-in updater,
 owns this runtime portfolio. The ordinary `claude` installation remains stock.
 
-Uninstall removes the manager, LaunchAgent, and isolated stock/patched runtime
-portfolios. It intentionally preserves `~/.claude-all`, `~/.cli-proxy-api`,
+Uninstall removes the manager, its feature selection, LaunchAgent, and isolated
+stock/patched runtime portfolios. It intentionally preserves `~/.claude-all`, `~/.cli-proxy-api`,
 the companion proxy, and the ordinary stock `claude` installation.
 
 ## Development

@@ -78,15 +78,15 @@ export function fileSha256(path) {
   return sha256(readFileSync(path));
 }
 
-export function patchClaudeBinaryWithSupportPack({ source, target, supportPack }) {
+export function patchClaudeBinaryWithSupportPack({ source, target, supportPack, enabledFeatures }) {
   const stock = readFileSync(source);
-  const result = applySupportPack(stock, supportPack);
+  const result = applySupportPack(stock, supportPack, { enabledFeatures });
   writeFileSync(target, result.patched, { mode: 0o755 });
   return result;
 }
 
-export function verifyPatchedBytesWithSupportPack(path, supportPack) {
-  verifyAppliedRecipes(readFileSync(path), supportPack);
+export function verifyPatchedBytesWithSupportPack(path, supportPack, { enabledFeatures } = {}) {
+  verifyAppliedRecipes(readFileSync(path), supportPack, { enabledFeatures });
 }
 
 function replaceUnique(binary, original, replacement) {

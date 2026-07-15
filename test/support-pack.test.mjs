@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   applySupportPack,
   compareVersions,
+  resolveSupportPackProfile,
   selectSupportPack,
   validateSupportCatalog,
   validateSupportPack,
@@ -13,6 +14,7 @@ const pack = JSON.parse(readFileSync(new URL("../support/darwin-arm64/2.1.197.js
 const goalPack = JSON.parse(readFileSync(new URL("../support/darwin-arm64/2.1.201.json", import.meta.url), "utf8"));
 const supersededCurrentPack = JSON.parse(readFileSync(new URL("../support/darwin-arm64/2.1.202.json", import.meta.url), "utf8"));
 const latestGoalPack = JSON.parse(readFileSync(new URL("../support/darwin-arm64/2.1.202-p9.json", import.meta.url), "utf8"));
+const selectablePack = JSON.parse(readFileSync(new URL("../support/darwin-arm64/2.1.202-p10.json", import.meta.url), "utf8"));
 const catalog = JSON.parse(readFileSync(new URL("../support/catalog.json", import.meta.url), "utf8"));
 const stable = `${process.env.HOME}/.local/share/claude-stable/versions/2.1.197/claude`;
 const goalStable = `${process.env.HOME}/.local/share/claude-stable/versions/2.1.201/claude`;
@@ -89,6 +91,37 @@ test("applies the reviewed 2.1.202 set_goal pack reproducibly", { skip: !existsS
     assert.equal(result.patched.includes(Buffer.from(recipe.original)), false, recipe.id);
     assert.equal(result.patched.includes(Buffer.from(recipe.replacement)), true, recipe.id);
   }
+});
+
+test("authorizes and reproduces every selectable 2.1.202 feature profile", { skip: !existsSync(latestGoalStable) }, () => {
+  const stock = readFileSync(latestGoalStable);
+  assert.equal(Object.keys(selectablePack.features.profiles).length, 24);
+  for (const key of Object.keys(selectablePack.features.profiles)) {
+    const enabled = key === "none" ? [] : key.split("+");
+    const profile = resolveSupportPackProfile(selectablePack, enabled);
+    const result = applySupportPack(stock, selectablePack, { enabledFeatures: enabled });
+    assert.equal(result.featureProfile, key);
+    assert.equal(result.unsignedPatchedSha256, profile.expectedUnsignedPatchedSha256);
+  }
+});
+
+test("defaults selectable packs to All and preserves stock bytes for none", { skip: !existsSync(latestGoalStable) }, () => {
+  const stock = readFileSync(latestGoalStable);
+  const all = applySupportPack(stock, selectablePack);
+  const none = applySupportPack(stock, selectablePack, { enabledFeatures: [] });
+  assert.deepEqual(all.enabledFeatures, selectablePack.features.default);
+  assert.equal(none.unsignedPatchedSha256, selectablePack.stock.sha256);
+  assert.deepEqual(none.patched, stock);
+  assert.throws(
+    () => applySupportPack(stock, selectablePack, { enabledFeatures: ["pricing"] }),
+    /pricing requires discovery/,
+  );
+});
+
+test("rejects incomplete selectable profile catalogs", () => {
+  const invalid = structuredClone(selectablePack);
+  delete invalid.features.profiles.none;
+  assert.throws(() => validateSupportPack(invalid), /profiles are incomplete/);
 });
 
 test("rejects stock mutations and oversized replacements", { skip: !existsSync(stable) }, () => {

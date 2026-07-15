@@ -43,6 +43,8 @@ Every pack must contain:
 - schema and patch-engine versions;
 - exact Claude version, platform, architecture, stock size, and stock SHA-256;
 - exact original and replacement strings with one expected match;
+- the feature group and dependency assigned to every recipe;
+- a deterministic unsigned SHA-256 for every permitted feature combination;
 - analysis offsets and resolver call counts;
 - the deterministic unsigned patched SHA-256;
 - Anthropic's expected Apple team identifier.
@@ -56,6 +58,13 @@ Feature work is forward-only: generate new recipe revisions for the current
 reviewed Stable build. Do not retrofit a new feature across older packs merely
 for behavioral parity. Older packs may remain in the catalog for rollback, with
 the behavior they originally shipped.
+
+Selectable packs default to `All`. Generation must enumerate every dependency-
+valid profile (currently 24), reproduce each profile from stock, and verify
+that disabled recipes retain their exact original bytes. Never accept a runtime
+hash computed from an unlisted combination. Consumer upgrades preserve the
+existing feature config; historical schema-1 packs remain fixed all-or-nothing
+artifacts.
 
 ## Release sequence
 

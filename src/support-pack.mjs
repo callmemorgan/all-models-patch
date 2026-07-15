@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
-export const SUPPORT_PACK_SCHEMA = 1;
+export const SUPPORT_PACK_SCHEMA = 2;
 export const SUPPORT_CATALOG_SCHEMA = 1;
-export const PATCH_ENGINE_SCHEMA = 1;
+export const PATCH_ENGINE_SCHEMA = 2;
 
 export function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -15,8 +15,9 @@ export function fileSha256(path) {
 
 export function validateSupportPack(pack) {
   if (!pack || typeof pack !== "object" || Array.isArray(pack)) throw new Error("support pack must be an object");
-  if (pack.schemaVersion !== SUPPORT_PACK_SCHEMA) throw new Error(`unsupported support pack schema: ${pack.schemaVersion}`);
-  if (pack.patchEngineSchema !== PATCH_ENGINE_SCHEMA) throw new Error(`unsupported patch engine schema: ${pack.patchEngineSchema}`);
+  if (pack.schemaVersion !== 1 && pack.schemaVersion !== SUPPORT_PACK_SCHEMA) throw new Error(`unsupported support pack schema: ${pack.schemaVersion}`);
+  const expectedEngine = pack.schemaVersion === 1 ? 1 : PATCH_ENGINE_SCHEMA;
+  if (pack.patchEngineSchema !== expectedEngine) throw new Error(`unsupported patch engine schema: ${pack.patchEngineSchema}`);
   assertString(pack.id, "support pack id");
   assertVersion(pack.claudeVersion, "Claude version");
   if (pack.platform !== "darwin-arm64") throw new Error(`unsupported support pack platform: ${pack.platform}`);
@@ -42,6 +43,7 @@ export function validateSupportPack(pack) {
     }
     if (recipe.expectedMatches !== 1) throw new Error(`unsupported expected match count for ${recipe.id}`);
   }
+  if (pack.schemaVersion === 2) validateFeatureProfiles(pack, recipeIds);
   return pack;
 }
 
@@ -83,31 +85,71 @@ export function selectSupportPack(catalog, { claudeVersion, platform, stockSha25
   return matches[0] ?? null;
 }
 
-export function applySupportPack(binary, rawPack) {
+export function resolveSupportPackProfile(rawPack, enabledFeatures) {
   const pack = validateSupportPack(rawPack);
+  if (pack.schemaVersion === 1) {
+    return Object.freeze({
+      configurable: false,
+      key: "legacy-all",
+      enabledFeatures: null,
+      expectedUnsignedPatchedSha256: pack.expectedUnsignedPatchedSha256,
+      recipes: Object.freeze([...pack.recipes]),
+    });
+  }
+  const groups = pack.features.groups;
+  const enabled = normalizePackSelection(enabledFeatures ?? pack.features.default, groups);
+  const key = packFeatureKey(enabled, groups);
+  const expected = pack.features.profiles[key];
+  if (!expected) throw new Error(`support pack does not authorize feature profile: ${key}`);
+  const recipeIds = new Set(groups.filter((group) => enabled.includes(group.id)).flatMap((group) => group.recipeIds));
+  return Object.freeze({
+    configurable: true,
+    key,
+    enabledFeatures: Object.freeze(enabled),
+    expectedUnsignedPatchedSha256: expected,
+    recipes: Object.freeze(pack.recipes.filter((recipe) => recipeIds.has(recipe.id))),
+  });
+}
+
+export function applySupportPack(binary, rawPack, { enabledFeatures } = {}) {
+  const pack = validateSupportPack(rawPack);
+  const profile = resolveSupportPackProfile(pack, enabledFeatures);
   if (!Buffer.isBuffer(binary)) throw new Error("stock binary must be a Buffer");
   if (binary.length !== pack.stock.size) throw new Error(`stock size mismatch: got ${binary.length}, expected ${pack.stock.size}`);
   const stockHash = sha256(binary);
   if (stockHash !== pack.stock.sha256) throw new Error(`stock SHA-256 mismatch: got ${stockHash}, expected ${pack.stock.sha256}`);
 
   const patched = Buffer.from(binary);
-  for (const recipe of pack.recipes) replaceUnique(patched, recipe);
-  verifyAppliedRecipes(patched, pack);
+  for (const recipe of profile.recipes) replaceUnique(patched, recipe);
+  verifyAppliedRecipes(patched, pack, { enabledFeatures: profile.enabledFeatures });
   const patchedHash = sha256(patched);
-  if (patchedHash !== pack.expectedUnsignedPatchedSha256) {
-    throw new Error(`unsigned patched SHA-256 mismatch: got ${patchedHash}, expected ${pack.expectedUnsignedPatchedSha256}`);
+  if (patchedHash !== profile.expectedUnsignedPatchedSha256) {
+    throw new Error(`unsigned patched SHA-256 mismatch: got ${patchedHash}, expected ${profile.expectedUnsignedPatchedSha256}`);
   }
-  return { patched, stockSha256: stockHash, unsignedPatchedSha256: patchedHash };
+  return {
+    patched,
+    stockSha256: stockHash,
+    unsignedPatchedSha256: patchedHash,
+    featureProfile: profile.key,
+    enabledFeatures: profile.enabledFeatures,
+  };
 }
 
-export function verifyAppliedRecipes(binary, rawPack) {
+export function verifyAppliedRecipes(binary, rawPack, { enabledFeatures } = {}) {
   const pack = validateSupportPack(rawPack);
+  const profile = resolveSupportPackProfile(pack, enabledFeatures);
+  const enabledRecipeIds = new Set(profile.recipes.map((recipe) => recipe.id));
   const source = Buffer.isBuffer(binary) ? binary : Buffer.from(binary);
   for (const recipe of pack.recipes) {
     const original = Buffer.from(recipe.original);
     const replacement = Buffer.from(recipe.replacement);
-    if (countBuffer(source, original) !== 0) throw new Error(`original bytes remain for ${recipe.id}`);
-    if (countBuffer(source, replacement) !== 1) throw new Error(`patched bytes do not match exactly once for ${recipe.id}`);
+    const enabled = enabledRecipeIds.has(recipe.id);
+    const originalCount = countBuffer(source, original);
+    const replacementCount = countBuffer(source, replacement);
+    if (enabled && originalCount !== 0) throw new Error(`original bytes remain for ${recipe.id}`);
+    if (enabled && replacementCount !== 1) throw new Error(`patched bytes do not match exactly once for ${recipe.id}`);
+    if (!enabled && originalCount !== 1) throw new Error(`disabled recipe original bytes do not match exactly once for ${recipe.id}`);
+    if (!enabled && replacementCount !== 0) throw new Error(`disabled recipe replacement is present for ${recipe.id}`);
   }
 }
 
@@ -151,4 +193,76 @@ function assertVersion(value, label) {
 
 function assertSha256(value, label) {
   if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value)) throw new Error(`${label} must be lowercase hexadecimal`);
+}
+
+function validateFeatureProfiles(pack, recipeIds) {
+  const features = pack.features;
+  if (!features || typeof features !== "object" || Array.isArray(features)) throw new Error("support pack features are missing");
+  if (features.schemaVersion !== 1) throw new Error(`unsupported feature schema: ${features.schemaVersion}`);
+  if (!Array.isArray(features.groups) || features.groups.length === 0) throw new Error("support pack feature groups are missing");
+  if (!features.profiles || typeof features.profiles !== "object" || Array.isArray(features.profiles)) throw new Error("support pack feature profiles are missing");
+  const groupIds = new Set();
+  const assignedRecipes = new Set();
+  for (const group of features.groups) {
+    assertString(group.id, "feature id");
+    if (groupIds.has(group.id)) throw new Error(`duplicate feature group: ${group.id}`);
+    groupIds.add(group.id);
+    if (!Array.isArray(group.recipeIds) || group.recipeIds.length === 0) throw new Error(`feature ${group.id} has no recipes`);
+    if (!Array.isArray(group.requires)) throw new Error(`feature ${group.id} requirements must be an array`);
+    for (const recipeId of group.recipeIds) {
+      if (!recipeIds.has(recipeId)) throw new Error(`feature ${group.id} references unknown recipe: ${recipeId}`);
+      if (assignedRecipes.has(recipeId)) throw new Error(`recipe belongs to multiple feature groups: ${recipeId}`);
+      assignedRecipes.add(recipeId);
+    }
+  }
+  if (assignedRecipes.size !== recipeIds.size) throw new Error("every recipe must belong to exactly one feature group");
+  for (const group of features.groups) {
+    for (const requirement of group.requires) {
+      if (!groupIds.has(requirement)) throw new Error(`feature ${group.id} requires unknown feature: ${requirement}`);
+      if (requirement === group.id) throw new Error(`feature ${group.id} cannot require itself`);
+    }
+  }
+  normalizePackSelection(features.default, features.groups);
+  const expectedKeys = new Set(enumeratePackSelections(features.groups).map((selection) => packFeatureKey(selection, features.groups)));
+  const actualKeys = Object.keys(features.profiles);
+  if (actualKeys.length !== expectedKeys.size || actualKeys.some((key) => !expectedKeys.has(key))) {
+    throw new Error("support pack feature profiles are incomplete or unexpected");
+  }
+  for (const [key, hash] of Object.entries(features.profiles)) assertSha256(hash, `feature profile ${key} SHA-256`);
+  const defaultKey = packFeatureKey(features.default, features.groups);
+  if (features.profiles[defaultKey] !== pack.expectedUnsignedPatchedSha256) {
+    throw new Error("default feature profile hash does not match support pack output hash");
+  }
+}
+
+function normalizePackSelection(values, groups) {
+  if (!Array.isArray(values)) throw new Error("enabled features must be an array");
+  const known = new Map(groups.map((group) => [group.id, group]));
+  const enabled = new Set(values);
+  for (const value of enabled) if (!known.has(value)) throw new Error(`unknown feature: ${value}`);
+  for (const value of enabled) {
+    for (const requirement of known.get(value).requires) {
+      if (!enabled.has(requirement)) throw new Error(`${value} requires ${requirement}`);
+    }
+  }
+  return groups.map((group) => group.id).filter((id) => enabled.has(id));
+}
+
+function packFeatureKey(values, groups) {
+  const enabled = normalizePackSelection(values, groups);
+  return enabled.length === 0 ? "none" : enabled.join("+");
+}
+
+function enumeratePackSelections(groups) {
+  if (groups.length > 10) throw new Error("too many support pack features to enumerate safely");
+  const selections = [];
+  for (let bits = 0; bits < 2 ** groups.length; bits += 1) {
+    const candidate = groups.filter((_, index) => bits & (1 << index)).map((group) => group.id);
+    try {
+      selections.push(normalizePackSelection(candidate, groups));
+    } catch (error) {
+      if (!/ requires /.test(error.message)) throw error;
+    }
+  }
+  return selections;
 }

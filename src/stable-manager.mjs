@@ -18,21 +18,25 @@ import {
 import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { compareVersions, fileSha256, selectSupportPack, validateSupportCatalog, validateSupportPack } from "./support-pack.mjs";
+import { compareVersions, fileSha256, resolveSupportPackProfile, selectSupportPack, validateSupportCatalog, validateSupportPack } from "./support-pack.mjs";
 import { patchClaudeBinaryWithSupportPack, verifyPatchedBytesWithSupportPack } from "./claude-context-patcher.mjs";
+import { effectiveFeatureConfig } from "./features.mjs";
 
 export const MANAGER_STATE_SCHEMA = 1;
 export const ANTHROPIC_RELEASES_URL = "https://downloads.claude.ai/claude-code-releases";
 export const EXPECTED_APPLE_TEAM = "Q6L2SF6YDW";
 
-export function managerPaths(home = process.env.HOME, stateHome = process.env.XDG_STATE_HOME) {
+export function managerPaths(home = process.env.HOME, stateHome = process.env.XDG_STATE_HOME, configHome = process.env.XDG_CONFIG_HOME) {
   if (!home) throw new Error("HOME is not set");
   const stateRoot = stateHome || join(home, ".local", "state");
+  const configRoot = configHome || join(home, ".config");
   return {
     home,
     stateDirectory: join(stateRoot, "all-models-patch"),
     statePath: join(stateRoot, "all-models-patch", "stable-update.json"),
     lockPath: join(stateRoot, "all-models-patch", ".stable-update.lock"),
+    configDirectory: join(configRoot, "all-models-patch"),
+    featureConfigPath: join(configRoot, "all-models-patch", "features.json"),
     stockRoot: join(home, ".local", "share", "claude-stable"),
     patchedRoot: join(home, ".local", "share", "claude-all"),
     managerRoot: join(home, ".local", "share", "all-models-patch"),
@@ -133,7 +137,8 @@ export async function reconcileStable({
 
     if (entry?.status === "active") {
       const { pack } = loadSupportPack(toolRoot, entry);
-      result = await installSupportedRuntime({ descriptor, entry, pack, catalog, paths, fetchImpl, releasesUrl });
+      const features = effectiveFeatureConfig(paths.featureConfigPath);
+      result = await installSupportedRuntime({ descriptor, entry, pack, catalog, paths, fetchImpl, releasesUrl, enabledFeatures: features.enabled });
       const proxyWarning = await probeCompanionProxy({ paths, fetchImpl });
       if (proxyWarning) result.proxyWarning = proxyWarning;
     } else {
@@ -231,26 +236,28 @@ export function fallbackRevokedRuntime({ catalog, toolRoot, paths = managerPaths
   };
 }
 
-export async function installSupportedRuntime({ descriptor, entry, pack, catalog, paths, fetchImpl, releasesUrl }) {
+export async function installSupportedRuntime({ descriptor, entry, pack, catalog, paths, fetchImpl, releasesUrl, enabledFeatures }) {
   const version = descriptor.stableVersion;
   const stockDirectory = join(paths.stockRoot, "versions", version);
   const stockPath = join(stockDirectory, "claude");
   const patchedDirectory = join(paths.patchedRoot, "versions", version);
   const patchedPath = join(patchedDirectory, "claude");
   const patchedManifestPath = join(patchedDirectory, "manifest.json");
+  const profile = resolveSupportPackProfile(pack, enabledFeatures);
 
   if (existsSync(patchedPath) && existsSync(patchedManifestPath)) {
     const manifest = JSON.parse(readFileSync(patchedManifestPath, "utf8"));
     if (
       manifest.supportPackId === pack.id &&
       manifest.supportPackSha256 === entry.packSha256 &&
-      manifest.stockSha256 === pack.stock.sha256
+      manifest.stockSha256 === pack.stock.sha256 &&
+      manifest.featureProfile === profile.key
     ) {
       verifyInstalledRuntime({ patchedPath, stockPath: manifest.stockPath, manifest, pack });
       promoteRuntime(paths.patchedRoot, patchedDirectory);
       if (existsSync(stockPath)) promoteRuntime(paths.stockRoot, stockDirectory);
       if (catalog) pruneRuntimeCache(paths, version, catalog);
-      return { status: "activated-cached", supportPackId: entry.id, patchedPath };
+      return { status: "activated-cached", supportPackId: entry.id, patchedPath, featureProfile: profile.key };
     }
   }
 
@@ -269,14 +276,14 @@ export async function installSupportedRuntime({ descriptor, entry, pack, catalog
   const temporary = join(patchedDirectory, `.claude.tmp-${process.pid}`);
   rmSync(temporary, { force: true });
   try {
-    const patch = patchClaudeBinaryWithSupportPack({ source: stockPath, target: temporary, supportPack: pack });
-    if (patch.unsignedPatchedSha256 !== pack.expectedUnsignedPatchedSha256) throw new Error("support pack output hash mismatch");
+    const patch = patchClaudeBinaryWithSupportPack({ source: stockPath, target: temporary, supportPack: pack, enabledFeatures: profile.enabledFeatures });
+    if (patch.unsignedPatchedSha256 !== profile.expectedUnsignedPatchedSha256) throw new Error("support pack output hash mismatch");
     execFileSync("/usr/bin/codesign", ["--force", "--sign", "-", temporary], { stdio: "pipe" });
     execFileSync("/usr/bin/codesign", ["--verify", "--deep", "--strict", temporary], { stdio: "pipe" });
     execFileSync(temporary, ["--version"], { stdio: "pipe", env: { ...process.env, DISABLE_UPDATES: "1" } });
     renameSync(temporary, patchedPath);
     const manifest = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       claudeVersion: version,
       platform: "darwin-arm64",
       supportPackId: pack.id,
@@ -284,7 +291,9 @@ export async function installSupportedRuntime({ descriptor, entry, pack, catalog
       stockPath,
       stockSha256: pack.stock.sha256,
       patchedSha256: fileSha256(patchedPath),
-      unsignedPatchedSha256: pack.expectedUnsignedPatchedSha256,
+      unsignedPatchedSha256: profile.expectedUnsignedPatchedSha256,
+      featureProfile: profile.key,
+      enabledFeatures: profile.enabledFeatures,
       builtAt: new Date().toISOString(),
     };
     writeFileSync(patchedManifestPath, `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600 });
@@ -292,7 +301,7 @@ export async function installSupportedRuntime({ descriptor, entry, pack, catalog
     promoteRuntime(paths.patchedRoot, patchedDirectory);
     promoteRuntime(paths.stockRoot, stockDirectory);
     if (catalog) pruneRuntimeCache(paths, version, catalog);
-    return { status: "installed", supportPackId: entry.id, patchedPath };
+    return { status: "installed", supportPackId: entry.id, patchedPath, featureProfile: profile.key };
   } finally {
     rmSync(temporary, { force: true });
   }
@@ -314,15 +323,19 @@ export async function activateSupportedVersion(version, {
   if (!entry) throw new Error(`no support pack matches Claude ${version} (${descriptor.platform.checksum})`);
   if (entry.status !== "active") throw new Error(`support pack for Claude ${version} is ${entry.status}`);
   const { pack } = loadSupportPack(toolRoot, entry);
-  return installSupportedRuntime({ descriptor, entry, pack, catalog, paths, fetchImpl, releasesUrl });
+  const features = effectiveFeatureConfig(paths.featureConfigPath);
+  return installSupportedRuntime({ descriptor, entry, pack, catalog, paths, fetchImpl, releasesUrl, enabledFeatures: features.enabled });
 }
 
 export function verifyInstalledRuntime({ patchedPath, stockPath, manifest, pack }) {
+  const profile = resolveSupportPackProfile(pack, manifest.enabledFeatures);
   if (manifest.stockSha256 !== pack.stock.sha256) throw new Error("runtime manifest stock hash does not match its support pack");
-  if (manifest.unsignedPatchedSha256 !== pack.expectedUnsignedPatchedSha256) throw new Error("runtime manifest patched hash does not match its support pack");
+  const manifestedProfile = manifest.featureProfile ?? (pack.schemaVersion === 1 ? "legacy-all" : null);
+  if (manifestedProfile !== profile.key) throw new Error("runtime manifest feature profile does not match its support pack");
+  if (manifest.unsignedPatchedSha256 !== profile.expectedUnsignedPatchedSha256) throw new Error("runtime manifest patched hash does not match its support pack");
   if (!existsSync(stockPath) || fileSha256(stockPath) !== manifest.stockSha256) throw new Error("versioned stock runtime no longer matches its manifest");
   if (fileSha256(patchedPath) !== manifest.patchedSha256) throw new Error("patched runtime hash mismatch");
-  verifyPatchedBytesWithSupportPack(patchedPath, pack);
+  verifyPatchedBytesWithSupportPack(patchedPath, pack, { enabledFeatures: profile.enabledFeatures });
   execFileSync("/usr/bin/codesign", ["--verify", "--deep", "--strict", patchedPath], { stdio: "pipe" });
 }
 
@@ -331,13 +344,15 @@ export function resolveVerifiedRuntime({ toolRoot, paths = managerPaths() }) {
   const patchedPath = join(root, "claude");
   const manifestPath = join(root, "manifest.json");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  if (manifest.schemaVersion !== 2) throw new Error("the active runtime predates support packs; run all-models-patch update");
+  if (manifest.schemaVersion !== 3) throw new Error("the active runtime predates selectable features; run all-models-patch update");
   const { catalog } = loadSupportCatalog(toolRoot);
   const entry = catalog.packs.find((candidate) => candidate.id === manifest.supportPackId);
   if (!entry) throw new Error(`active support pack is not installed: ${manifest.supportPackId}`);
   if (entry.status !== "active") throw new Error(`active support pack is ${entry.status}: ${manifest.supportPackId}`);
   if (manifest.supportPackSha256 !== entry.packSha256) throw new Error("runtime manifest support-pack hash mismatch");
   const { pack } = loadSupportPack(toolRoot, entry);
+  const configured = resolveSupportPackProfile(pack, effectiveFeatureConfig(paths.featureConfigPath).enabled);
+  if (manifest.featureProfile !== configured.key) throw new Error("the feature selection changed; run all-models-patch update");
   verifyInstalledRuntime({ patchedPath, stockPath: manifest.stockPath, manifest, pack });
   return patchedPath;
 }
@@ -359,6 +374,7 @@ export function uninstallAllModelsPatch({ paths = managerPaths(), unloadLaunchAg
   rmSync(paths.patchedRoot, { recursive: true, force: true });
   rmSync(paths.stockRoot, { recursive: true, force: true });
   rmSync(paths.stateDirectory, { recursive: true, force: true });
+  rmSync(paths.configDirectory, { recursive: true, force: true });
 }
 
 export function verifyAnthropicBinary(path, platform) {
