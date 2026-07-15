@@ -16,6 +16,7 @@ fi
 
 node "$root/bin/prepare-release"
 node "$root/bin/verify-release-artifacts"
+node "$root/bin/notarize-release"
 
 /usr/bin/git -C "$root" tag -s "$tag" -m "all-models-patch $version"
 /usr/bin/git -C "$root" push origin "$tag"

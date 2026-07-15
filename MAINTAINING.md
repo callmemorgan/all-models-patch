@@ -77,9 +77,12 @@ artifacts.
    npm run support:generate
    ```
 
-3. Commit the scoped source changes, then run `npm run release:prepare`. Release
-   preparation refuses dirty or uncommitted trees and records the full source
-   commit in the signed manifest.
+3. Confirm that Keychain Access contains the project `Developer ID Application`
+   identity and that the `all-models-patch-notary` keychain profile is valid.
+   Commit the scoped source changes, then run `npm run release:prepare`. Release
+   preparation refuses dirty or uncommitted trees, signs the compiled manager
+   with the hardened runtime and a trusted timestamp, verifies Apple team
+   `5LTMYWRTYR`, and records the full source commit in the SSH-signed manifest.
 4. Verify the generated manifest and archive:
 
    ```bash
@@ -88,13 +91,30 @@ artifacts.
 
 5. Test the archive on a clean Apple Silicon user account without Node.
 6. Run `bin/publish-release` to create the signed tag and GitHub release. It
-   rebuilds, signs, and verifies the artifacts from the still-clean current
-   commit immediately before publication; pre-existing `dist` files are never
-   trusted.
+   rebuilds, signs, verifies, and notarizes the artifacts from the still-clean
+   current commit immediately before publication; pre-existing `dist` files are
+   never trusted. Publication stops unless Apple returns `Accepted`.
+
+Create the notarization keychain profile once with an app-specific password:
+
+```bash
+xcrun notarytool store-credentials all-models-patch-notary \
+  --apple-id "APPLE_ACCOUNT_EMAIL" \
+  --team-id 5LTMYWRTYR
+```
+
+`ALL_MODELS_PATCH_CODESIGN_IDENTITY` and `ALL_MODELS_PATCH_NOTARY_PROFILE`
+override the default certificate name and keychain profile for controlled
+release environments. Do not put the app-specific password in this repository
+or a release script.
 
 The release manifest uses the SSH signing namespace
 `all-models-patch-release`. Consumers store the highest accepted sequence and
 reject older signed manifests to prevent replay.
+
+The Apple Developer ID signature covers the project-authored manager only. The
+patched Claude executable is derived and ad-hoc signed on each consumer's Mac;
+it is never signed with the project's Developer ID or included in a release.
 
 ## Rollback and revocation testing
 

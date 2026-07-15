@@ -94,9 +94,11 @@ tar -xzf all-models-patch-VERSION-darwin-arm64.tar.gz
 zsh all-models-patch-VERSION/bin/install-all-models-patch
 ```
 
-The preview manager is not yet Apple Developer ID notarized. After the SSH
-signature and archive hash verify, the installer removes quarantine from the
-verified local copy and ad-hoc signs it. It never uses `sudo`.
+The manager is signed with the project's Apple Developer ID Application
+certificate and notarized by Apple. The installer preserves that signature and
+verifies Apple team `5LTMYWRTYR` before it executes the manager. The independent
+SSH signature still authenticates the complete release manifest, source commit,
+archive hash, and release sequence. The installer never uses `sudo`.
 
 The installer creates:
 
@@ -171,7 +173,7 @@ manager automatically:
    ID team `Q6L2SF6YDW`;
 5. applies every selected reviewed replacement exactly once;
 6. verifies the deterministic unsigned hash authorized for that feature profile;
-7. ad-hoc signs and smoke-tests the local result;
+7. ad-hoc signs and smoke-tests the locally generated patched Claude result;
 8. atomically promotes it while retaining verified rollback versions.
 
 Stable rollbacks follow the same rules. A cached supported version is

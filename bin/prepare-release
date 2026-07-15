@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PROJECT_DEVELOPER_ID_AUTHORITY, verifyProjectDeveloperIdSignature } from "../src/apple-signing.mjs";
 import { fileSha256 } from "../src/support-pack.mjs";
 import { RELEASE_SIGNING_NAMESPACE, validateReleaseManifest } from "../src/release-manifest.mjs";
 
@@ -14,6 +15,7 @@ const dist = join(root, "dist");
 const stage = join(dist, `all-models-patch-${version}`);
 const archive = join(dist, `all-models-patch-${version}-darwin-arm64.tar.gz`);
 const signingKey = resolve(process.env.ALL_MODELS_PATCH_SIGNING_KEY ?? `${process.env.HOME}/.ssh/id_ed25519_signing`);
+const codeSigningIdentity = process.env.ALL_MODELS_PATCH_CODESIGN_IDENTITY ?? PROJECT_DEVELOPER_ID_AUTHORITY;
 const bun = process.env.BUN ?? execFileSync("/usr/bin/which", ["bun"], { encoding: "utf8" }).trim();
 const worktreeStatus = execFileSync("/usr/bin/git", ["-C", root, "status", "--porcelain", "--untracked-files=all"], { encoding: "utf8" });
 const sourceCommit = execFileSync("/usr/bin/git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
@@ -42,6 +44,10 @@ execFileSync("/usr/bin/git", ["-C", root, "archive", "--format=tar", `--output=$
 execFileSync("/usr/bin/tar", ["-xf", pluginArchive, "-C", stage], { stdio: "inherit" });
 rmSync(pluginArchive, { force: true });
 execFileSync("/bin/chmod", ["+x", join(stage, "bin", "all-models-patch"), join(stage, "bin", "claude-all"), join(stage, "bin", "claude-stable"), join(stage, "bin", "install-all-models-patch")]);
+const manager = join(stage, "bin", "all-models-patch");
+execFileSync("/usr/bin/codesign", ["--force", "--sign", codeSigningIdentity, "--options", "runtime", "--timestamp", manager], { stdio: "inherit" });
+verifyProjectDeveloperIdSignature(manager);
+execFileSync(manager, ["doctor", "--json"], { env: { ...process.env, ALL_MODELS_PATCH_HOME: stage }, stdio: "pipe" });
 execFileSync("/usr/bin/tar", ["-czf", archive, "-C", dist, basename(stage)], { env: { ...process.env, COPYFILE_DISABLE: "1" }, stdio: "inherit" });
 
 const manifest = validateReleaseManifest({

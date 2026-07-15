@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { verifyProjectDeveloperIdSignature } from "../src/apple-signing.mjs";
 import { validateReleaseManifest, verifyReleaseManifestSignature } from "../src/release-manifest.mjs";
 import { fileSha256 } from "../src/support-pack.mjs";
 
@@ -13,9 +14,11 @@ const manifestPath = join(root, "dist", "release-manifest.json");
 const signaturePath = `${manifestPath}.sig`;
 const allowedSignersPath = join(root, "config", "release-signers");
 const archive = join(root, "dist", `all-models-patch-${version}-darwin-arm64.tar.gz`);
+const manager = join(root, "dist", `all-models-patch-${version}`, "bin", "all-models-patch");
 const manifest = verifyReleaseManifestSignature({ manifestPath, signaturePath, allowedSignersPath });
 
 validateReleaseManifest(manifest);
+verifyProjectDeveloperIdSignature(manager);
 if (manifest.managerVersion !== version) throw new Error("release manifest version does not match package version");
 if (manifest.sourceCommit !== head) throw new Error("release artifacts were not built from the current commit");
 if (manifest.assets.bundle.name !== basename(archive)) throw new Error("release manifest bundle name is invalid");

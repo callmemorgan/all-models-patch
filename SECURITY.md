@@ -15,6 +15,12 @@ identity, namespace, or key, and reject release-sequence rollback.
 Stock Claude Code binaries must match Anthropic's manifest and Apple Developer
 ID team `Q6L2SF6YDW`. Project releases never contain an Anthropic executable.
 
+The project-authored `all-models-patch` manager must carry a hardened,
+timestamped Developer ID Application signature from Apple team `5LTMYWRTYR`,
+and publication requires an accepted Apple notarization submission. The
+installer preserves and re-verifies that signature. Locally patched Claude
+binaries remain ad-hoc signed because they are generated on the consumer's Mac.
+
 ## Reporting vulnerabilities
 
 Please report vulnerabilities privately through GitHub's private vulnerability
