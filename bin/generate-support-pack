@@ -5,6 +5,7 @@ import { dirname, relative, resolve } from "node:path";
 import { analyzeClaudeBinary, KNOWN_BUILDS } from "../src/claude-context-analyzer.mjs";
 import { PATCH_RECIPES_2_1_197 } from "../src/claude-context-patcher.mjs";
 import { reviewedRecipesForClaude201 } from "../src/claude-2.1.201-recipes.mjs";
+import { reviewedRecipesForClaude202 } from "../src/claude-2.1.202-recipes.mjs";
 import { applySupportPack, fileSha256 } from "../src/support-pack.mjs";
 
 const version = process.argv[2] ?? "2.1.197";
@@ -19,6 +20,8 @@ const recipes = version === "2.1.197"
   ? PATCH_RECIPES_2_1_197
   : version === "2.1.201"
     ? reviewedRecipesForClaude201(stock.toString("latin1"))
+    : version === "2.1.202"
+      ? reviewedRecipesForClaude202(stock.toString("latin1"))
     : (() => { throw new Error(`no reviewed recipe set is registered for Claude ${version}`); })();
 const draft = {
   schemaVersion: 1,
@@ -27,7 +30,7 @@ const draft = {
   platform: "darwin-arm64",
   architecture: "arm64",
   patchEngineSchema: 1,
-  patcherVersion: version === "2.1.197" ? 6 : 7,
+  patcherVersion: version === "2.1.197" ? 6 : 8,
   stock: {
     sha256: analysis.sha256,
     size: analysis.size,

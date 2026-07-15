@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "releaseSequence": 1,
-  "managerVersion": "0.2.0",
+  "releaseSequence": 2,
+  "managerVersion": "0.3.0",
   "packs": [
     {
       "id": "darwin-arm64/2.1.197/8cc0c4d1e4eb1dca3b0cc92ab02ee3505de764e023f8c901761c167b72041fb8",
@@ -17,8 +17,17 @@
       "claudeVersion": "2.1.201",
       "platform": "darwin-arm64",
       "stockSha256": "a0852d76afc47b30f5cb0b7625ec9a7714cb189f2eeef6c28c77e2be954fb7fd",
-      "packSha256": "701c05b89b67f84b41c49880bd93b0bd5d008178692d1702ef02d35652fa6b31",
+      "packSha256": "17652a0613489b37098d7c5a6639940d4ba1a37f0fb01a0ece253fcb3ccd00dd",
       "path": "darwin-arm64/2.1.201.json",
+      "status": "active"
+    },
+    {
+      "id": "darwin-arm64/2.1.202/7414f707861e2fe5afef33a466f888a8d2170e5028f5e9d2858f1d3ef45ffca5",
+      "claudeVersion": "2.1.202",
+      "platform": "darwin-arm64",
+      "stockSha256": "7414f707861e2fe5afef33a466f888a8d2170e5028f5e9d2858f1d3ef45ffca5",
+      "packSha256": "159209ba7b8a025e147242b599bc06e190747146b2c4ded30fc6f8317143ea4f",
+      "path": "darwin-arm64/2.1.202.json",
       "status": "active"
     }
   ]

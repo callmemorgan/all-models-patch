@@ -10,8 +10,12 @@ import {
 } from "../src/support-pack.mjs";
 
 const pack = JSON.parse(readFileSync(new URL("../support/darwin-arm64/2.1.197.json", import.meta.url), "utf8"));
+const goalPack = JSON.parse(readFileSync(new URL("../support/darwin-arm64/2.1.201.json", import.meta.url), "utf8"));
+const latestGoalPack = JSON.parse(readFileSync(new URL("../support/darwin-arm64/2.1.202.json", import.meta.url), "utf8"));
 const catalog = JSON.parse(readFileSync(new URL("../support/catalog.json", import.meta.url), "utf8"));
 const stable = `${process.env.HOME}/.local/share/claude-stable/versions/2.1.197/claude`;
+const goalStable = `${process.env.HOME}/.local/share/claude-stable/versions/2.1.201/claude`;
+const latestGoalStable = `${process.env.HOME}/.local/share/claude-stable/versions/2.1.202/claude`;
 
 test("validates and selects an exact immutable support pack", () => {
   validateSupportPack(pack);
@@ -44,6 +48,33 @@ test("applies the reviewed 2.1.197 pack reproducibly", { skip: !existsSync(stabl
   }
 });
 
+test("applies the reviewed 2.1.201 set_goal pack reproducibly", { skip: !existsSync(goalStable) }, () => {
+  const stock = readFileSync(goalStable);
+  const result = applySupportPack(stock, goalPack);
+  assert.equal(result.unsignedPatchedSha256, goalPack.expectedUnsignedPatchedSha256);
+  assert.equal(result.patched.includes(Buffer.from('var YO="set_goal";')), true);
+  assert.equal(result.patched.includes(Buffer.from('var YO="TodoWrite";')), false);
+  assert.equal(result.patched.includes(Buffer.from('name:YO,maxResultSizeChars:1e5,alwaysLoad:!0')), true);
+  assert.equal(result.patched.includes(Buffer.from("ICt(n,t)")), true);
+  for (const recipe of goalPack.recipes) {
+    assert.equal(result.patched.includes(Buffer.from(recipe.original)), false, recipe.id);
+    assert.equal(result.patched.includes(Buffer.from(recipe.replacement)), true, recipe.id);
+  }
+});
+
+test("applies the reviewed 2.1.202 set_goal pack reproducibly", { skip: !existsSync(latestGoalStable) }, () => {
+  const stock = readFileSync(latestGoalStable);
+  const result = applySupportPack(stock, latestGoalPack);
+  assert.equal(result.unsignedPatchedSha256, latestGoalPack.expectedUnsignedPatchedSha256);
+  assert.equal(result.patched.includes(Buffer.from('var nO="set_goal";')), true);
+  assert.equal(result.patched.includes(Buffer.from('var nO="TodoWrite";')), false);
+  assert.equal(result.patched.includes(Buffer.from("KCt(r,t)")), true);
+  for (const recipe of latestGoalPack.recipes) {
+    assert.equal(result.patched.includes(Buffer.from(recipe.original)), false, recipe.id);
+    assert.equal(result.patched.includes(Buffer.from(recipe.replacement)), true, recipe.id);
+  }
+});
+
 test("rejects stock mutations and oversized replacements", { skip: !existsSync(stable) }, () => {
   const stock = Buffer.from(readFileSync(stable));
   stock[100] ^= 1;
@@ -54,6 +85,7 @@ test("rejects stock mutations and oversized replacements", { skip: !existsSync(s
 });
 
 test("orders upgrades, current versions, and rollbacks", () => {
+  assert.equal(compareVersions("2.1.202", "2.1.201"), 1);
   assert.equal(compareVersions("2.1.201", "2.1.197"), 1);
   assert.equal(compareVersions("2.1.197", "2.1.197"), 0);
   assert.equal(compareVersions("2.1.197", "2.1.201"), -1);

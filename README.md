@@ -167,6 +167,7 @@ The signed portfolio currently contains exact Apple Silicon support for:
 | --- | --- |
 | `2.1.197` | `8cc0c4d1e4eb1dca3b0cc92ab02ee3505de764e023f8c901761c167b72041fb8` |
 | `2.1.201` | `a0852d76afc47b30f5cb0b7625ec9a7714cb189f2eeef6c28c77e2be954fb7fd` |
+| `2.1.202` | `7414f707861e2fe5afef33a466f888a8d2170e5028f5e9d2858f1d3ef45ffca5` |
 
 Support is keyed by version, platform, and binary hash. A republished binary
 with the same version but a different hash is unsupported until reviewed.
@@ -179,6 +180,7 @@ with the same version but a different hash is unsupported until reviewed.
 | Context windows | Read validated per-model context limits from the launch environment |
 | Compaction | Read validated per-model compaction thresholds |
 | Git attribution | Credit the active model and identify this harness |
+| Autonomous goals | Expose Claude Code's native goal runtime as the model-callable `set_goal` tool |
 
 Generated commit attribution looks like:
 
@@ -223,8 +225,9 @@ npm run release:prepare
 ```
 
 See [MAINTAINING.md](MAINTAINING.md) for candidate analysis, support-pack
-review, revocation, signing, and publication. See [SECURITY.md](SECURITY.md) for
-the trust and disclosure model.
+review, revocation, signing, and publication. The exact `set_goal` seams and
+verification contract are documented in [docs/SET_GOAL_PATCH.md](docs/SET_GOAL_PATCH.md).
+See [SECURITY.md](SECURITY.md) for the trust and disclosure model.
 
 ## License
 

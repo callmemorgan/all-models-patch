@@ -20,7 +20,7 @@ test("patches gateway discovery to retain real provider model IDs", { skip: !exi
   verifyPatchedBytes(target);
 
   const patched = readFileSync(target).toString("latin1");
-  assert.equal(PATCHER_VERSION, 7);
+  assert.equal(PATCHER_VERSION, 8);
   assert.equal(result.analysis.attributionOffset, 213451965);
   assert.equal(result.analysis.gatewayFilterOffset, 204861577);
   assert.equal(patched.includes("let l=a.data.data;"), true);

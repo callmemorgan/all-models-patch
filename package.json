@@ -1,6 +1,6 @@
 {
   "name": "all-models-patch",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "A patched Claude Code harness for real models from a local gateway.",
@@ -10,7 +10,7 @@
     "patch:analyze": "bin/analyze-claude-contexts",
     "patch:build": "bin/all-models-patch update --no-self-update",
     "patch:verify": "bin/all-models-patch runtime-path",
-    "support:generate": "node bin/generate-support-pack 2.1.197 ~/.local/share/claude-stable/versions/2.1.197/claude support/darwin-arm64/2.1.197.json && node bin/generate-support-pack 2.1.201 ~/.local/share/claude-stable/versions/2.1.201/claude support/darwin-arm64/2.1.201.json && node bin/generate-support-catalog",
+    "support:generate": "node bin/generate-support-pack 2.1.197 ~/.local/share/claude-stable/versions/2.1.197/claude support/darwin-arm64/2.1.197.json && node bin/generate-support-pack 2.1.201 ~/.local/share/claude-stable/versions/2.1.201/claude support/darwin-arm64/2.1.201.json && node bin/generate-support-pack 2.1.202 ~/.local/share/claude-stable/versions/2.1.202/claude support/darwin-arm64/2.1.202.json && node bin/generate-support-catalog support support/catalog.json 2",
     "release:prepare": "node bin/prepare-release",
     "test": "node --test test/*.mjs"
   },

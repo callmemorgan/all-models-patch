@@ -21,8 +21,9 @@ analysis remains a maintainer operation.
    signature, Anthropic PBC authority, and team `Q6L2SF6YDW`.
 4. Run the analyzer for every seam independently. A renamed minified function
    is review evidence, never patch authorization.
-5. Extract the complete attribution, gateway-filter, context-resolver, and
-   compaction-resolver regions. Review callers and adjacent control flow.
+5. Extract the complete attribution, gateway-filter, context-resolver,
+   compaction-resolver, and any version-specific feature regions. Review
+   callers and adjacent control flow.
 6. Create length-preserving replacements and prove every original occurs once.
 7. Generate the support pack, then verify its deterministic unsigned output
    hash against a fresh stock download.

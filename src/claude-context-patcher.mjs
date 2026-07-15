@@ -2,7 +2,7 @@ import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { analyzeClaudeBinary } from "./claude-context-analyzer.mjs";
 import { applySupportPack, sha256, verifyAppliedRecipes } from "./support-pack.mjs";
 
-export const PATCHER_VERSION = 7;
+export const PATCHER_VERSION = 8;
 
 export const MODEL_PROVIDER_EMAILS = Object.freeze([
   Object.freeze({ pattern: /^(?:claude|anthropic)/i, email: "noreply@anthropic.com" }),

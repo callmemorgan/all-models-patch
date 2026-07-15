@@ -5,13 +5,13 @@
   "platform": "darwin-arm64",
   "architecture": "arm64",
   "patchEngineSchema": 1,
-  "patcherVersion": 7,
+  "patcherVersion": 8,
   "stock": {
     "sha256": "a0852d76afc47b30f5cb0b7625ec9a7714cb189f2eeef6c28c77e2be954fb7fd",
     "size": 231708784,
     "appleTeamIdentifier": "Q6L2SF6YDW"
   },
-  "expectedUnsignedPatchedSha256": "a4a5392fcbd52bfb4ce78fccdd546f603f5a147aea177cc32b691766f8994c77",
+  "expectedUnsignedPatchedSha256": "1c0a8d42284a34cb86660653bf6e0a2fc41232de8f7c66c5f5d62f18a5112fd9",
   "analysis": {
     "attributionOffset": 215740843,
     "gatewayFilterOffset": 210059611,
@@ -43,6 +43,18 @@
       "id": "compact-resolver",
       "original": "function Rq(e,t){let n=oo(e),r=wT(),o=Tb(e,r);if(process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW){let l=ipe(\"CLAUDE_CODE_AUTO_COMPACT_WINDOW\",process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW,Uar,Iqo);if(l.status!==\"invalid\"){let c=Math.max(Uar,l.effective);return{window:Math.min(o,c),configured:c,source:\"env\"}}}if(t!==void 0)return{window:Math.min(o,t),configured:t,source:\"settings\"};let s=qWm(n);if(s.window!==null)return{window:Math.min(o,s.window),configured:s.window,source:\"clientdata\"};let i=Dqo(n);if(i!==void 0)return{window:Math.min(o,i),configured:i,source:\"experiment\"};if(o<1e6&&($Wm.has(n)||JXr(e,r)))return{window:Math.min(o,Ore),configured:Ore,source:\"model-default\"};let a=s.replacesDefault?void 0:BWm(n);if(a!==void 0)return{window:Math.min(o,a),configured:a,source:\"model-default\"};return{window:o,configured:o,source:\"auto\"}}",
       "replacement": "function Rq(e,t){let n=oo(e),r=wT(),o=Tb(e,r),m=Math.min,p=process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW;if(p){let l=ipe(\"CLAUDE_CODE_AUTO_COMPACT_WINDOW\",p,Uar,Iqo);if(l.status!==\"invalid\"){let c=Math.max(Uar,l.effective);return{window:m(o,c),configured:c,source:\"env\"}}}if(t??=+process.env[\"CLAUDE_ALL_COMPACT_\"+e]||void 0,t!==void 0)return{window:m(o,t),configured:t,source:\"settings\"};let s=qWm(n);if(s.window!==null)return{window:m(o,s.window),configured:s.window,source:\"clientdata\"};let i=Dqo(n);if(i!==void 0)return{window:m(o,i),configured:i,source:\"experiment\"};if(o<1e6&&($Wm.has(n)||JXr(e,r)))return{window:m(o,Ore),configured:Ore,source:\"model-default\"};let a=s.replacesDefault?void 0:BWm(n);if(a!==void 0)return{window:m(o,a),configured:a,source:\"model-default\"};return{window:o,configured:o,source:\"auto\"}}",
+      "expectedMatches": 1
+    },
+    {
+      "id": "goal-tool-name",
+      "original": "var YO=\"TodoWrite\";",
+      "replacement": "var YO=\"set_goal\";",
+      "expectedMatches": 1
+    },
+    {
+      "id": "goal-tool",
+      "original": "var mFm,fFm,QOl;var ZOl=b(()=>{Mr();dt();$s();xH();Wer();XOl();mFm=Ae(()=>E.strictObject({todos:lFe().describe(\"The updated todo list\")})),fFm=Ae(()=>E.object({oldTodos:lFe().describe(\"The todo list before the update\"),newTodos:lFe().describe(\"The todo list after the update\")})),QOl=ys({name:YO,searchHint:\"manage the session task checklist\",maxResultSizeChars:1e5,strict:!0,async description(){return JOl},async prompt({model:e}){return YOl(e)},get inputSchema(){return mFm()},get outputSchema(){return fFm()},userFacingName(){return\"\"},shouldDefer:!0,isEnabled(){return!Ov()},toAutoClassifierInput(e){return`${e.todos.length} items`},async checkPermissions(e){return{behavior:\"allow\",updatedInput:e}},renderToolUseMessage(){return null},async call({todos:e},t){let n=t.getAppState(),r=t.agentId??Pt(),o=n.todos[r]??[],i=e.every((a)=>a.status===\"completed\")?[]:e;return t.setAppState((a)=>({...a,todos:{...a.todos,[r]:i}})),{data:{oldTodos:o,newTodos:e}}},mapToolResultToToolResultBlockParam(e,t){return{tool_use_id:t,type:\"tool_result\",content:\"Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable\"}}})});",
+      "replacement": "var mFm,fFm,QOl;var ZOl=b(()=>{Mr();$s();xH();aJe();mFm=Ae(()=>E.strictObject({objective:E.string().min(1).max(xCt).describe(\"A measurable condition and the evidence that proves it\")})),QOl=ys({name:YO,maxResultSizeChars:1e5,alwaysLoad:!0,async description(){return\"Keep working until a session goal is met\"},async prompt(){return\"Set a measurable goal when the user asks you to work autonomously. It persists across turns, replaces any active goal, and is evaluated from evidence in the conversation.\"},get inputSchema(){return mFm()},userFacingName(){return\"Set goal\"},isEnabled(){return!0},isConcurrencySafe(){return!1},async checkPermissions(e){return{behavior:\"allow\",updatedInput:e}},renderToolUseMessage(){return null},async call({objective:e},t){let n=e.trim(),r=ICt(n,t);if(r!==null)throw Error(r);return{data:{objective:n}}},mapToolResultToToolResultBlockParam(e,t){return{tool_use_id:t,type:\"tool_result\",content:`Goal active: ${e.objective}. Continue working until it is met.`}}})});",
       "expectedMatches": 1
     }
   ]
