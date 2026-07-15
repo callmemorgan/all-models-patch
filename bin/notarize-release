@@ -3,17 +3,19 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { verifyProjectDeveloperIdSignature } from "../src/apple-signing.mjs";
+import { validateNotarizationLog, verifyProjectDeveloperIdSignature } from "../src/apple-signing.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const version = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
 const stage = join(root, "dist", `all-models-patch-${version}`);
 const manager = join(stage, "bin", "all-models-patch");
 const submission = join(root, "dist", `.all-models-patch-${version}-notarization.zip`);
+const logPath = join(root, "dist", `.all-models-patch-${version}-notarization-log.json`);
 const profile = process.env.ALL_MODELS_PATCH_NOTARY_PROFILE ?? "all-models-patch-notary";
 
-verifyProjectDeveloperIdSignature(manager);
+const managerCdHash = verifyProjectDeveloperIdSignature(manager);
 rmSync(submission, { force: true });
+rmSync(logPath, { force: true });
 try {
   execFileSync("/usr/bin/ditto", ["-c", "-k", "--keepParent", stage, submission], { stdio: "inherit" });
   const output = execFileSync("/usr/bin/xcrun", [
@@ -28,7 +30,18 @@ try {
   ], { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
   const result = JSON.parse(output);
   if (result.status !== "Accepted") throw new Error(`notarization was not accepted: ${result.status ?? "unknown status"}`);
+  execFileSync("/usr/bin/xcrun", [
+    "notarytool",
+    "log",
+    result.id,
+    "--keychain-profile",
+    profile,
+    logPath,
+  ], { stdio: "inherit" });
+  const log = JSON.parse(readFileSync(logPath, "utf8"));
+  validateNotarizationLog(log, managerCdHash);
   console.log(`Notarized all-models-patch ${version} (submission ${result.id}).`);
 } finally {
   rmSync(submission, { force: true });
+  rmSync(logPath, { force: true });
 }

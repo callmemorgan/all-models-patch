@@ -19,12 +19,33 @@ export function validateProjectDeveloperIdDetails(detail) {
   return true;
 }
 
+export function projectDeveloperIdCdHash(detail) {
+  validateProjectDeveloperIdDetails(detail);
+  const match = detail.match(/^CDHash=([a-f0-9]+)$/m);
+  if (!match) throw new Error("manager signature does not expose a code-directory hash");
+  return match[1];
+}
+
+export function validateNotarizationLog(log, expectedCdHash) {
+  if (log.status !== "Accepted" || log.statusSummary !== "Ready for distribution") {
+    throw new Error(`notarization log is not ready for distribution: ${log.status ?? "unknown status"}`);
+  }
+  if (Array.isArray(log.issues) && log.issues.length > 0) {
+    throw new Error("notarization log contains issues");
+  }
+  const ticket = Array.isArray(log.ticketContents)
+    ? log.ticketContents.find((entry) => entry?.path?.endsWith("/bin/all-models-patch") && entry?.arch === "arm64")
+    : null;
+  if (!ticket) throw new Error("notarization log does not contain an ARM64 manager ticket");
+  if (ticket.cdhash !== expectedCdHash) throw new Error("notarization ticket does not match the signed manager CDHash");
+  return true;
+}
+
 export function verifyProjectDeveloperIdSignature(path, { exec = execFileSync, spawn = spawnSync } = {}) {
   exec("/usr/bin/codesign", ["--verify", "--strict", "--verbose=4", path], { stdio: "pipe" });
   const result = spawn("/usr/bin/codesign", ["-d", "--verbose=4", path], { encoding: "utf8" });
   if (result.status !== 0) {
     throw new Error(`could not inspect manager code signature: ${(result.stderr || result.stdout || "unknown error").trim()}`);
   }
-  validateProjectDeveloperIdDetails(result.stderr);
-  return true;
+  return projectDeveloperIdCdHash(result.stderr);
 }

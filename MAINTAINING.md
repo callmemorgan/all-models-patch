@@ -93,7 +93,9 @@ artifacts.
 6. Run `bin/publish-release` to create the signed tag and GitHub release. It
    rebuilds, signs, verifies, and notarizes the artifacts from the still-clean
    current commit immediately before publication; pre-existing `dist` files are
-   never trusted. Publication stops unless Apple returns `Accepted`.
+   never trusted. Publication stops unless Apple returns `Accepted` and its
+   detailed log contains an issue-free ARM64 ticket matching the manager's exact
+   signed code-directory hash.
 
 Create the notarization keychain profile once with an app-specific password:
 
