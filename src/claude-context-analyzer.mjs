@@ -1,11 +1,13 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { locateGatewayBootstrapSeam } from "./claude-gateway-pricing-recipe.mjs";
 
 export const KNOWN_BUILDS = Object.freeze({
   "2.1.197": Object.freeze({
     sha256: "8cc0c4d1e4eb1dca3b0cc92ab02ee3505de764e023f8c901761c167b72041fb8",
     attributionOffset: 213451965,
     gatewayFilterOffset: 204861577,
+    gatewayBootstrapOffset: 210967319,
     contextResolverOffset: 205632952,
     compactResolverOffset: 207844407,
     contextCallCount: 18,
@@ -15,6 +17,7 @@ export const KNOWN_BUILDS = Object.freeze({
     sha256: "a0852d76afc47b30f5cb0b7625ec9a7714cb189f2eeef6c28c77e2be954fb7fd",
     attributionOffset: 215740843,
     gatewayFilterOffset: 210059611,
+    gatewayBootstrapOffset: 217139806,
     contextResolverOffset: 210833177,
     compactResolverOffset: 219494315,
     contextCallCount: 20,
@@ -24,6 +27,7 @@ export const KNOWN_BUILDS = Object.freeze({
     sha256: "7414f707861e2fe5afef33a466f888a8d2170e5028f5e9d2858f1d3ef45ffca5",
     attributionOffset: 222843154,
     gatewayFilterOffset: 217145527,
+    gatewayBootstrapOffset: 224318518,
     contextResolverOffset: 218215492,
     compactResolverOffset: 229952621,
     contextCallCount: 22,
@@ -124,6 +128,7 @@ export function analyzeClaudeBinary(path, { version } = {}) {
   const architecture = machoArchitecture(binary);
   const attributionOffset = uniqueOffset(source, layout.attribution[0]);
   const gatewayFilterOffset = uniqueOffset(source, layout.gateway[0]);
+  const gatewayBootstrapOffset = locateGatewayBootstrapSeam(source).offset;
   const contextResolverOffset = uniqueOffset(source, layout.context[0]);
   const compactResolverOffset = uniqueOffset(source, layout.compact[0]);
   assertNeighborhood(source, attributionOffset, layout.attribution, 1_500);
@@ -139,6 +144,7 @@ export function analyzeClaudeBinary(path, { version } = {}) {
     architecture,
     attributionOffset,
     gatewayFilterOffset,
+    gatewayBootstrapOffset,
     contextResolverOffset,
     compactResolverOffset,
     contextCallCount: count(source, layout.contextCall),
@@ -157,6 +163,7 @@ export function inspectClaudeCandidate(path) {
   const seams = {
     attribution: inspectSeam(source, ["function rkm(){", "function lJp(){", "function hZp(){"], ["Co-Authored-By: ${t} <noreply@anthropic.com>", "includeCoAuthoredBy===!1"]),
     gatewayFilter: inspectSeam(source, [GATEWAY_FILTER_FINGERPRINT[0]], GATEWAY_FILTER_FINGERPRINT.slice(1)),
+    gatewayBootstrap: inspectGatewayBootstrap(source),
     contextResolver: inspectSeam(source, ["function Qxi(e,t){", "function _1i(e,t){", "function _Gs(e,t){"], ["CLAUDE_CODE_MAX_CONTEXT_TOKENS"]),
     compactResolver: inspectSeam(source, ["function N3(e,t){", "function Rq(e,t){", "function v6(e,t){"], ["CLAUDE_CODE_AUTO_COMPACT_WINDOW", 'source:"model-default"']),
   };
@@ -176,6 +183,17 @@ export function inspectClaudeCandidate(path) {
     seams,
   };
 }
+
+function inspectGatewayBootstrap(source) {
+  try {
+    const seam = locateGatewayBootstrapSeam(source);
+    return { status: "semantic-review", offset: seam.offset, matchedStart: seam.original.slice(0, seam.original.indexOf("{") + 1), missingAnchors: [] };
+  } catch {
+    return { status: "missing", offset: null, matchedStart: null, candidates: 0, missingAnchors: [FETCH_GATEWAY_BOOTSTRAP] };
+  }
+}
+
+const FETCH_GATEWAY_BOOTSTRAP = "[Bootstrap] Skipped gateway /v1/models";
 
 export function verifyKnownBuild(result, version) {
   const known = KNOWN_BUILDS[version];

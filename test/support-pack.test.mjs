@@ -11,7 +11,8 @@ import {
 
 const pack = JSON.parse(readFileSync(new URL("../support/darwin-arm64/2.1.197.json", import.meta.url), "utf8"));
 const goalPack = JSON.parse(readFileSync(new URL("../support/darwin-arm64/2.1.201.json", import.meta.url), "utf8"));
-const latestGoalPack = JSON.parse(readFileSync(new URL("../support/darwin-arm64/2.1.202.json", import.meta.url), "utf8"));
+const supersededCurrentPack = JSON.parse(readFileSync(new URL("../support/darwin-arm64/2.1.202.json", import.meta.url), "utf8"));
+const latestGoalPack = JSON.parse(readFileSync(new URL("../support/darwin-arm64/2.1.202-p9.json", import.meta.url), "utf8"));
 const catalog = JSON.parse(readFileSync(new URL("../support/catalog.json", import.meta.url), "utf8"));
 const stable = `${process.env.HOME}/.local/share/claude-stable/versions/2.1.197/claude`;
 const goalStable = `${process.env.HOME}/.local/share/claude-stable/versions/2.1.201/claude`;
@@ -28,6 +29,9 @@ test("validates and selects an exact immutable support pack", () => {
     })?.id,
     pack.id,
   );
+  const historicalEntry = catalog.packs.find((entry) => entry.id === pack.id);
+  assert.equal(historicalEntry?.status, "active");
+  assert.equal(historicalEntry?.packSha256, "3ecb5dca565fd48da9e62b73a22e5e03018621f09767621ef15af212780955e7");
   assert.equal(
     selectSupportPack(catalog, {
       claudeVersion: "2.1.197",
@@ -35,6 +39,16 @@ test("validates and selects an exact immutable support pack", () => {
       stockSha256: "0".repeat(64),
     }),
     null,
+  );
+});
+
+test("rejects two active recipe revisions for the same stock binary", () => {
+  const invalid = structuredClone(catalog);
+  const entries = invalid.packs.filter((entry) => entry.claudeVersion === "2.1.202");
+  for (const entry of entries) entry.status = "active";
+  assert.throws(
+    () => selectSupportPack(invalid, { claudeVersion: "2.1.202", platform: "darwin-arm64", stockSha256: latestGoalPack.stock.sha256 }),
+    /ambiguous active support catalog entry/,
   );
 });
 
@@ -69,6 +83,8 @@ test("applies the reviewed 2.1.202 set_goal pack reproducibly", { skip: !existsS
   assert.equal(result.patched.includes(Buffer.from('var nO="set_goal";')), true);
   assert.equal(result.patched.includes(Buffer.from('var nO="TodoWrite";')), false);
   assert.equal(result.patched.includes(Buffer.from("KCt(r,t)")), true);
+  assert.equal(result.patched.includes(Buffer.from("ANTHROPIC_AUTH_TOKEN")), true);
+  assert.equal(catalog.packs.find((entry) => entry.id === supersededCurrentPack.id)?.status, "revoked");
   for (const recipe of latestGoalPack.recipes) {
     assert.equal(result.patched.includes(Buffer.from(recipe.original)), false, recipe.id);
     assert.equal(result.patched.includes(Buffer.from(recipe.replacement)), true, recipe.id);

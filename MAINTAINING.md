@@ -21,9 +21,9 @@ analysis remains a maintainer operation.
    signature, Anthropic PBC authority, and team `Q6L2SF6YDW`.
 4. Run the analyzer for every seam independently. A renamed minified function
    is review evidence, never patch authorization.
-5. Extract the complete attribution, gateway-filter, context-resolver,
-   compaction-resolver, and any version-specific feature regions. Review
-   callers and adjacent control flow.
+5. Extract the complete attribution, gateway-filter, gateway-bootstrap,
+   context-resolver, compaction-resolver, and any version-specific feature
+   regions. Review callers and adjacent control flow.
 6. Create length-preserving replacements and prove every original occurs once.
 7. Generate the support pack, then verify its deterministic unsigned output
    hash against a fresh stock download.
@@ -47,8 +47,15 @@ Every pack must contain:
 - the deterministic unsigned patched SHA-256;
 - Anthropic's expected Apple team identifier.
 
-Published pack files are immutable. To withdraw one, mark its catalog entry
-`revoked` in a new higher release sequence. Do not edit or delete the old pack.
+Published pack files are immutable. A new recipe revision gets a new
+`patcher-N` support-pack ID and file; the previous pack remains byte-for-byte
+unchanged and is marked `revoked` in a new higher release sequence. Do not edit
+or delete the old pack.
+
+Feature work is forward-only: generate new recipe revisions for the current
+reviewed Stable build. Do not retrofit a new feature across older packs merely
+for behavioral parity. Older packs may remain in the catalog for rollback, with
+the behavior they originally shipped.
 
 ## Release sequence
 

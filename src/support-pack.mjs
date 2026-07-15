@@ -21,6 +21,7 @@ export function validateSupportPack(pack) {
   assertVersion(pack.claudeVersion, "Claude version");
   if (pack.platform !== "darwin-arm64") throw new Error(`unsupported support pack platform: ${pack.platform}`);
   if (pack.architecture !== "arm64") throw new Error(`unsupported support pack architecture: ${pack.architecture}`);
+  if (!Number.isSafeInteger(pack.patcherVersion) || pack.patcherVersion < 1) throw new Error("support pack patcherVersion must be positive");
   if (!pack.stock || typeof pack.stock !== "object") throw new Error("support pack stock metadata is missing");
   assertSha256(pack.stock.sha256, "stock SHA-256");
   if (!Number.isSafeInteger(pack.stock.size) || pack.stock.size <= 0) throw new Error("stock size must be a positive integer");
@@ -59,6 +60,7 @@ export function validateSupportCatalog(catalog) {
     if (entry.platform !== "darwin-arm64") throw new Error(`unsupported catalog platform: ${entry.platform}`);
     assertSha256(entry.stockSha256, "catalog stock SHA-256");
     assertSha256(entry.packSha256, "catalog pack SHA-256");
+    if (!Number.isSafeInteger(entry.patcherVersion) || entry.patcherVersion < 1) throw new Error("catalog patcherVersion must be positive");
     assertString(entry.path, "catalog pack path");
     if (entry.path.startsWith("/") || entry.path.split("/").includes("..")) throw new Error(`catalog pack path escapes support root: ${entry.path}`);
     if (entry.status !== "active" && entry.status !== "revoked") throw new Error(`invalid catalog status for ${entry.id}`);
@@ -74,7 +76,10 @@ export function selectSupportPack(catalog, { claudeVersion, platform, stockSha25
       entry.platform === platform &&
       entry.stockSha256 === stockSha256,
   );
-  if (matches.length > 1) throw new Error(`ambiguous support catalog entry for Claude ${claudeVersion}`);
+  const active = matches.filter((entry) => entry.status === "active");
+  if (active.length > 1) throw new Error(`ambiguous active support catalog entry for Claude ${claudeVersion}`);
+  if (active.length === 1) return active[0];
+  if (matches.length > 1) return matches.sort((left, right) => right.patcherVersion - left.patcherVersion)[0];
   return matches[0] ?? null;
 }
 

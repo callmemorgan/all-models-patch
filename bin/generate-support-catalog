@@ -7,7 +7,7 @@ const root = resolve(process.argv[2] ?? "support");
 const output = resolve(process.argv[3] ?? join(root, "catalog.json"));
 const releaseSequence = Number.parseInt(process.argv[4] ?? "1", 10);
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-const packs = [];
+const discovered = [];
 
 for (const platform of readdirSync(root, { withFileTypes: true })) {
   if (!platform.isDirectory()) continue;
@@ -16,19 +16,28 @@ for (const platform of readdirSync(root, { withFileTypes: true })) {
     if (!file.isFile() || !file.name.endsWith(".json")) continue;
     const path = join(directory, file.name);
     const pack = validateSupportPack(JSON.parse(readFileSync(path, "utf8")));
-    packs.push({
+    discovered.push({
       id: pack.id,
       claudeVersion: pack.claudeVersion,
       platform: pack.platform,
       stockSha256: pack.stock.sha256,
+      patcherVersion: pack.patcherVersion,
       packSha256: fileSha256(path),
       path: relative(root, path),
-      status: "active",
     });
   }
 }
 
-packs.sort((left, right) => left.claudeVersion.localeCompare(right.claudeVersion, undefined, { numeric: true }));
+const newestPatcherByStock = new Map();
+for (const pack of discovered) {
+  const key = `${pack.platform}/${pack.claudeVersion}/${pack.stockSha256}`;
+  newestPatcherByStock.set(key, Math.max(newestPatcherByStock.get(key) ?? 0, pack.patcherVersion));
+}
+const packs = discovered.map((pack) => {
+  const key = `${pack.platform}/${pack.claudeVersion}/${pack.stockSha256}`;
+  return { ...pack, status: pack.patcherVersion === newestPatcherByStock.get(key) ? "active" : "revoked" };
+});
+packs.sort((left, right) => left.claudeVersion.localeCompare(right.claudeVersion, undefined, { numeric: true }) || left.patcherVersion - right.patcherVersion);
 const catalog = validateSupportCatalog({
   schemaVersion: 1,
   releaseSequence,

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "darwin-arm64/2.1.202/7414f707861e2fe5afef33a466f888a8d2170e5028f5e9d2858f1d3ef45ffca5/patcher-9",
+  "claudeVersion": "2.1.202",
+  "platform": "darwin-arm64",
+  "architecture": "arm64",
+  "patchEngineSchema": 1,
+  "patcherVersion": 9,
+  "stock": {
+    "sha256": "7414f707861e2fe5afef33a466f888a8d2170e5028f5e9d2858f1d3ef45ffca5",
+    "size": 243631376,
+    "appleTeamIdentifier": "Q6L2SF6YDW"
+  },
+  "expectedUnsignedPatchedSha256": "cac63b0e7edeb8c1adac2e52db6d27300a50a1b552482726944bd4509bc7c970",
+  "analysis": {
+    "attributionOffset": 222843154,
+    "gatewayFilterOffset": 217145527,
+    "gatewayBootstrapOffset": 224318518,
+    "contextResolverOffset": 218215492,
+    "compactResolverOffset": 229952621,
+    "contextCallCount": 22,
+    "compactCallCount": 22
+  },
+  "recipes": [
+    {
+      "id": "attribution",
+      "original": "function hZp(){let e=Hi(),t=Mv(e)?sxr(K9e.firstParty):dJa(e)?sxr(e):\"Claude\",r=`\\uD83E\\uDD16 Generated with [Claude Code](${oGe})`,n=`Co-Authored-By: ${t} <noreply@anthropic.com>`,o=Dn(),i=o.attribution;if(i&&(i.commit!==void 0||i.pr!==void 0))return{commit:i.commit??n,pr:i.pr??r};if(o.includeCoAuthoredBy===!1)return{commit:\"\",pr:\"\"};return{commit:n,pr:r}}function dJa(e){if(YJ(e)===null)return!1;let t=DIe(e);if(t!==e&&Object.hasOwn(NJ,t))return!0;let r=Xn(e),n=Yu(e).toLowerCase(),o=n.indexOf(r),i=r.length;if(o===-1&&r.endsWith(\"-0\")){let u=r.slice(0,-2);o=n.indexOf(u),i=u.length}if(o===-1){if(!e.includes(\"application-inference-profile\"))return!1;let u=BHt(Yu(e));return!!u&&dJa(u)}let s=n.slice(0,o),a=n.slice(o+i),l=s===\"\"||/[./]$/.test(s),c=/^(?:-fast|-latest)?(?:-v\\d+@\\d{8}|[-@]\\d{8})?(?:-v\\d+(?::\\d+)?)?$/.test(a);return l&&c}",
+      "replacement": "function hZp(){let e=Hi(),a=dJa(e),t=a?sxr(e):e,m=a?\"noreply@anthropic.com\":/^(gpt|codex)/.test(e)?\"noreply@openai.com\":/^gemini/.test(e)?\"gemini-code-assist[bot]@users.noreply.github.com\":/^grok/.test(e)?\"grok@x.ai\":/^kimi/.test(e)?\"noreply@moonshot.ai\":/^minimax/.test(e)?\"noreply@minimax.io\":/^glm/.test(e)?\"noreply@z.ai\":\"noreply@unknown.invalid\",r=`\\uD83E\\uDD16 Generated with [Claude Code](${oGe})`,n=`Generated-With: @callmemorgan/all-models-patch\\nCo-Authored-By: ${t} <${m}>`,o=Dn(),i=o.attribution;if(i&&(i.commit!==void 0||i.pr!==void 0))return{commit:i.commit??n,pr:i.pr??r};if(o.includeCoAuthoredBy===!1)return{commit:\"\",pr:\"\"};return{commit:n,pr:r}}function dJa(e){return /(^|[./])(?:claude|anthropic)[-./]/i.test(e)}",
+      "expectedMatches": 1
+    },
+    {
+      "id": "gateway-filter",
+      "original": "let l=a.data.data.filter((d)=>/^(claude|anthropic)/i.test(d.id));",
+      "replacement": "let l=a.data.data;",
+      "expectedMatches": 1
+    },
+    {
+      "id": "context-resolver",
+      "original": "function _Gs(e,t){if(Dg(e))return 1e6;if(t?.includes(GJ.header)&&a7(e))return 1e6;if(dx(e))return 1e6;let r=bLr(e);if(r!==null)return r;let n=ke.CLAUDE_CODE_MAX_CONTEXT_TOKENS;if(n!==void 0&&n>0&&!Xn($o(e)).startsWith(\"claude-\"))return n;return f3t}",
+      "replacement": "function _Gs(e,t){if(Dg(e))return 1e6;if(t?.includes(GJ.header)&&a7(e))return 1e6;if(dx(e))return 1e6;let r=+process.env[\"CLAUDE_ALL_CONTEXT_\"+e]||bLr(e);if(r)return r;let n=ke.CLAUDE_CODE_MAX_CONTEXT_TOKENS;return n>0?n:f3t}",
+      "expectedMatches": 1
+    },
+    {
+      "id": "compact-resolver",
+      "original": "function v6(e,t){let r=Xn(e),n=NT(),o=IS(e,n);if(process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW){let l=bpe(\"CLAUDE_CODE_AUTO_COMPACT_WINDOW\",process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW,zln,b8o);if(l.status!==\"invalid\"){let c=Math.max(zln,l.effective);return{window:Math.min(o,c),configured:c,source:\"env\"}}}if(t!==void 0)return{window:Math.min(o,t),configured:t,source:\"settings\"};let i=EVf(r);if(i.window!==null)return{window:Math.min(o,i.window),configured:i.window,source:\"clientdata\"};let s=E8o(r);if(s!==void 0)return{window:Math.min(o,s),configured:s,source:\"experiment\"};if(o<1e6&&(SVf.has(r)||mro(e,n)))return{window:Math.min(o,Kne),configured:Kne,source:\"model-default\"};let a=i.replacesDefault?void 0:bVf(r);if(a!==void 0)return{window:Math.min(o,a),configured:a,source:\"model-default\"};return{window:o,configured:o,source:\"auto\"}}",
+      "replacement": "function v6(e,t){let r=Xn(e),n=NT(),o=IS(e,n),m=Math.min,p=process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW;if(p){let l=bpe(\"CLAUDE_CODE_AUTO_COMPACT_WINDOW\",p,zln,b8o);if(l.status!==\"invalid\"){let c=Math.max(zln,l.effective);return{window:m(o,c),configured:c,source:\"env\"}}}if(t??=+process.env[\"CLAUDE_ALL_COMPACT_\"+e]||void 0,t!==void 0)return{window:m(o,t),configured:t,source:\"settings\"};let i=EVf(r);if(i.window!==null)return{window:m(o,i.window),configured:i.window,source:\"clientdata\"};let s=E8o(r);if(s!==void 0)return{window:m(o,s),configured:s,source:\"experiment\"};if(o<1e6&&(SVf.has(r)||mro(e,n)))return{window:m(o,Kne),configured:Kne,source:\"model-default\"};let a=i.replacesDefault?void 0:bVf(r);if(a!==void 0)return{window:m(o,a),configured:a,source:\"model-default\"};return{window:o,configured:o,source:\"auto\"}}",
+      "expectedMatches": 1
+    },
+    {
+      "id": "goal-tool-name",
+      "original": "var nO=\"TodoWrite\";",
+      "replacement": "var nO=\"set_goal\";",
+      "expectedMatches": 1
+    },
+    {
+      "id": "goal-tool",
+      "original": "var q6f,j6f,m$l;var h$l=S(()=>{Fn();ft();ji();IH();yrn();rFe();f$l();q6f=ve(()=>v.strictObject({todos:i2e().describe(\"The updated todo list\")})),j6f=ve(()=>v.object({oldTodos:i2e().describe(\"The todo list before the update\"),newTodos:i2e().describe(\"The todo list after the update\")})),m$l=Ci({name:nO,searchHint:\"manage the session task checklist\",maxResultSizeChars:1e5,strict:!0,async description(){return p$l},async prompt({model:e}){return d$l(e)},get inputSchema(){return q6f()},get outputSchema(){return j6f()},userFacingName(){return\"\"},shouldDefer:!0,isEnabled(){return!jA()&&!T6()},toAutoClassifierInput(e){return`${e.todos.length} items`},async checkPermissions(e){return{behavior:\"allow\",updatedInput:e}},renderToolUseMessage(){return null},async call({todos:e},t){let r=t.getAppState(),n=t.agentId??Pt(),o=r.todos[n]??[],s=e.every((a)=>a.status===\"completed\")?[]:e;return t.setAppState((a)=>({...a,todos:{...a.todos,[n]:s}})),{data:{oldTodos:o,newTodos:e}}},mapToolResultToToolResultBlockParam(e,t){return{tool_use_id:t,type:\"tool_result\",content:\"Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable\"}}})});",
+      "replacement": "var q6f,j6f,m$l;var h$l=S(()=>{Fn();ji();EJe();q6f=ve(()=>v.strictObject({objective:v.string().min(1).max(VCt).describe(\"A measurable condition and the evidence that proves it\")})),m$l=Ci({name:nO,maxResultSizeChars:1e5,alwaysLoad:!0,async description(){return\"Keep working until a session goal is met\"},async prompt(){return\"Set a measurable goal when the user asks you to work autonomously. It persists across turns, replaces any active goal, and is evaluated from evidence in the conversation.\"},get inputSchema(){return q6f()},userFacingName(){return\"Set goal\"},isEnabled(){return!0},isConcurrencySafe(){return!1},async checkPermissions(e){return{behavior:\"allow\",updatedInput:e}},renderToolUseMessage(){return null},async call({objective:e},t){let r=e.trim(),n=KCt(r,t);if(n!==null)throw Error(n);return{data:{objective:r}}},mapToolResultToToolResultBlockParam(e,t){return{tool_use_id:t,type:\"tool_result\",content:`Goal active: ${e.objective}. Continue working until it is met.`}}})});",
+      "expectedMatches": 1
+    },
+    {
+      "id": "gateway-pricing-bootstrap",
+      "original": "async function pwf(e){if(hn()===\"gateway\"){if(!ke.CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY)return C(\"[Bootstrap] Skipped gateway /v1/models (CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY not set)\"),{additional_model_options:[]};return mwf()}if($s())return C(\"[Bootstrap] Skipped: Nonessential traffic disabled\"),null;if(hn()!==\"firstParty\")return C(\"[Bootstrap] Skipped: 3P provider\"),null;let{params:t,userAgent:r}=sbl(e),n=async(s,a)=>{C(\"[Bootstrap] Fetching\");let l=await go.get(`${s}/api/claude_cli/bootstrap`,{headers:{\"Content-Type\":\"application/json\",\"User-Agent\":r,...sro(),...a},params:t,timeout:5000}),c=dwf().safeParse(l.data);if(!c.success)return C(`[Bootstrap] Response failed validation: ${c.error.message}`),mt(\"api_bootstrap_fetch\",\"parse_failed\"),null;return C(\"[Bootstrap] Fetch ok\"),c.data},o=ane();if(!o&&Bv())try{let[s,a]=await Promise.all([SHe(),wlt()]);if(s!==null)return await n(ke.ANTHROPIC_BASE_URL||a?.baseURL||Wi().BASE_API_URL,{...a?.extraHeaders,Authorization:`Bearer ${await s.getToken()}`,\"anthropic-beta\":xC})}catch(s){return C(`[Bootstrap] WIF fetch failed: ${go.isAxiosError(s)?s.response?.status??s.code:s instanceof Error?s.constructor.name:\"unknown\"}`),mt(\"api_bootstrap_fetch\",\"wif_unavailable\"),null}if(!(es()?.accessToken&&sx())&&!o)return C(\"[Bootstrap] Skipped: no usable OAuth, WIF, or API key\"),null;try{return await $1(async()=>{let s=es()?.accessToken,a;if(s&&sx())a={Authorization:`Bearer ${s}`,\"anthropic-beta\":xC};else if(o)a={\"x-api-key\":o};else return C(\"[Bootstrap] No auth available on retry, aborting\"),null;return n(Wi().BASE_API_URL,a)})}catch(s){throw C(`[Bootstrap] Fetch failed: ${go.isAxiosError(s)?s.response?.status??s.code:\"unknown\"}`),Re(\"api_bootstrap_fetch\",\"request_failed\"),s}}",
+      "replacement": "async function pwf(e){if($s())return C(\"[Bootstrap] Skipped: Nonessential traffic disabled\"),null;if(hn()!==\"firstParty\")return C(\"[Bootstrap] Skipped: 3P provider\"),null;let{params:t,userAgent:r}=sbl(e),n=async(s,a)=>{C(\"[Bootstrap] Fetching\");let l=await go.get(`${s}/api/claude_cli/bootstrap`,{headers:{\"Content-Type\":\"application/json\",\"User-Agent\":r,...sro(),...a},params:t,timeout:5000}),c=dwf().safeParse(l.data);if(!c.success)return C(`[Bootstrap] Response failed validation: ${c.error.message}`),mt(\"api_bootstrap_fetch\",\"parse_failed\"),null;return C(\"[Bootstrap] Fetch ok\"),c.data},o=ane();if(ke.ANTHROPIC_BASE_URL&&process.env.ANTHROPIC_AUTH_TOKEN)return n(ke.ANTHROPIC_BASE_URL,{Authorization:`Bearer ${process.env.ANTHROPIC_AUTH_TOKEN}`});if(!o&&Bv())try{let[s,a]=await Promise.all([SHe(),wlt()]);if(s!==null)return await n(ke.ANTHROPIC_BASE_URL||a?.baseURL||Wi().BASE_API_URL,{...a?.extraHeaders,Authorization:`Bearer ${await s.getToken()}`,\"anthropic-beta\":xC})}catch(s){return C(`[Bootstrap] WIF fetch failed: ${go.isAxiosError(s)?s.response?.status??s.code:s instanceof Error?s.constructor.name:\"unknown\"}`),mt(\"api_bootstrap_fetch\",\"wif_unavailable\"),null}if(!(es()?.accessToken&&sx())&&!o)return C(\"[Bootstrap] Skipped: no usable OAuth, WIF, or API key\"),null;try{return await $1(async()=>{let s=es()?.accessToken,a;if(s&&sx())a={Authorization:`Bearer ${s}`,\"anthropic-beta\":xC};else if(o)a={\"x-api-key\":o};else return C(\"[Bootstrap] No auth available on retry, aborting\"),null;return n(Wi().BASE_API_URL,a)})}catch(s){throw C(`[Bootstrap] Fetch failed: ${go.isAxiosError(s)?s.response?.status??s.code:\"unknown\"}`),Re(\"api_bootstrap_fetch\",\"request_failed\"),s}}",
+      "expectedMatches": 1
+    }
+  ]
+}

@@ -147,6 +147,12 @@ Stable rollbacks follow the same rules. A cached supported version is
 reactivated; an uncached version is reconstructed from its retained support
 pack; an unsupported or revoked version is never guessed.
 
+Feature support is forward-only. New patch behavior is added to the current
+reviewed Stable build and is not retrofitted into older support packs. Historical
+packs may remain available for operational rollback, but retain the exact
+feature set they originally shipped with. The manager keeps the active
+last-known-good runtime until a reviewed successor is ready.
+
 Useful commands:
 
 ```bash
@@ -170,13 +176,16 @@ The signed portfolio currently contains exact Apple Silicon support for:
 | `2.1.202` | `7414f707861e2fe5afef33a466f888a8d2170e5028f5e9d2858f1d3ef45ffca5` |
 
 Support is keyed by version, platform, and binary hash. A republished binary
-with the same version but a different hash is unsupported until reviewed.
+with the same version but a different hash is unsupported until reviewed. The
+table describes the rollback portfolio, not a promise that every historical
+build receives features introduced later.
 
 ## What the patch changes
 
 | Area | Patched behavior |
 | --- | --- |
 | Gateway discovery | Retain every model returned by the configured gateway |
+| List-equivalent pricing | Load the gateway's curated model costs through Claude Code's native bootstrap cache |
 | Context windows | Read validated per-model context limits from the launch environment |
 | Compaction | Read validated per-model compaction thresholds |
 | Git attribution | Credit the active model and identify this harness |

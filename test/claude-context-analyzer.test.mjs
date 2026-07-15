@@ -60,6 +60,7 @@ test("reports candidate seams independently without authorizing an unknown hash"
     {
       attribution: "semantic-review",
       gatewayFilter: "semantic-review",
+      gatewayBootstrap: "semantic-review",
       contextResolver: "semantic-review",
       compactResolver: "semantic-review",
     },

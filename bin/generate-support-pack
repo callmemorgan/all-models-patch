@@ -3,34 +3,32 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import { analyzeClaudeBinary, KNOWN_BUILDS } from "../src/claude-context-analyzer.mjs";
-import { PATCH_RECIPES_2_1_197 } from "../src/claude-context-patcher.mjs";
-import { reviewedRecipesForClaude201 } from "../src/claude-2.1.201-recipes.mjs";
 import { reviewedRecipesForClaude202 } from "../src/claude-2.1.202-recipes.mjs";
+import { GATEWAY_PRICING_PATCHER_VERSION, reviewedGatewayPricingRecipe } from "../src/claude-gateway-pricing-recipe.mjs";
 import { applySupportPack, fileSha256 } from "../src/support-pack.mjs";
 
-const version = process.argv[2] ?? "2.1.197";
+const CURRENT_REVIEWED_STABLE = "2.1.202";
+const version = process.argv[2] ?? CURRENT_REVIEWED_STABLE;
+if (version !== CURRENT_REVIEWED_STABLE) {
+  throw new Error(`support generation is forward-only; current reviewed Stable is ${CURRENT_REVIEWED_STABLE}`);
+}
 const source = resolve(process.argv[3] ?? `${process.env.HOME}/.local/share/claude-stable/versions/${version}/claude`);
-const output = resolve(process.argv[4] ?? `support/darwin-arm64/${version}.json`);
+const output = resolve(process.argv[4] ?? `support/darwin-arm64/${version}-p${GATEWAY_PRICING_PATCHER_VERSION}.json`);
 
 const known = KNOWN_BUILDS[version];
 if (!known) throw new Error(`Claude ${version} is not a known build`);
 const analysis = analyzeClaudeBinary(source, { version });
 const stock = readFileSync(source);
-const recipes = version === "2.1.197"
-  ? PATCH_RECIPES_2_1_197
-  : version === "2.1.201"
-    ? reviewedRecipesForClaude201(stock.toString("latin1"))
-    : version === "2.1.202"
-      ? reviewedRecipesForClaude202(stock.toString("latin1"))
-    : (() => { throw new Error(`no reviewed recipe set is registered for Claude ${version}`); })();
+const baseRecipes = reviewedRecipesForClaude202(stock.toString("latin1"));
+const recipes = Object.freeze([...baseRecipes, reviewedGatewayPricingRecipe(stock.toString("latin1"))]);
 const draft = {
   schemaVersion: 1,
-  id: `darwin-arm64/${version}/${analysis.sha256}`,
+  id: `darwin-arm64/${version}/${analysis.sha256}/patcher-${GATEWAY_PRICING_PATCHER_VERSION}`,
   claudeVersion: version,
   platform: "darwin-arm64",
   architecture: "arm64",
   patchEngineSchema: 1,
-  patcherVersion: version === "2.1.197" ? 6 : 8,
+  patcherVersion: GATEWAY_PRICING_PATCHER_VERSION,
   stock: {
     sha256: analysis.sha256,
     size: analysis.size,
@@ -40,6 +38,7 @@ const draft = {
   analysis: {
     attributionOffset: analysis.attributionOffset,
     gatewayFilterOffset: analysis.gatewayFilterOffset,
+    gatewayBootstrapOffset: analysis.gatewayBootstrapOffset,
     contextResolverOffset: analysis.contextResolverOffset,
     compactResolverOffset: analysis.compactResolverOffset,
     contextCallCount: analysis.contextCallCount,
