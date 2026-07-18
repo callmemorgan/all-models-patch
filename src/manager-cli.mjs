@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { loadContextEnvironment } from "./context-map.mjs";
 import { ALL_FEATURE_IDS, FEATURE_GROUPS, effectiveFeatureConfig, featureReport, readFeatureConfig, writeFeatureConfig } from "./features.mjs";
 import { maybeSelfUpdate } from "./self-update.mjs";
+import { provisionModelConfigs, validateShippedModelConfigs } from "./model-configs.mjs";
 import {
   activateSupportedVersion,
   briefStatus,
@@ -72,6 +73,7 @@ try {
     }
   } else if (command === "doctor") {
     const { path, catalog } = loadSupportCatalog(toolRoot);
+    validateShippedModelConfigs(toolRoot);
     const report = {
       status: "ok",
       toolRoot,
@@ -86,6 +88,13 @@ try {
     process.stdout.write(`${json ? JSON.stringify(report, null, 2) : Object.entries(report).map(([key, value]) => `${key}: ${value}`).join("\n")}\n`);
   } else if (command === "runtime-path") {
     process.stdout.write(resolveVerifiedRuntime({ toolRoot, paths }));
+  } else if (command === "provision-model-configs") {
+    const result = provisionModelConfigs({ toolRoot, home: paths.home });
+    if (json) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    else if (!quiet) {
+      for (const path of result.installed) process.stdout.write(`Installed default model config: ${path}\n`);
+      for (const path of result.preserved) process.stdout.write(`Preserved existing model config: ${path}\n`);
+    }
   } else if (command === "context-env") {
     const index = args.indexOf("context-env");
     const path = args[index + 1];

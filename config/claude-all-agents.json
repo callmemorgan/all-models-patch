@@ -1,0 +1,67 @@
+{
+  "fable-5": {
+    "description": "High-judgment engineering and final synthesis with Claude Fable 5.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "claude-fable-5"
+  },
+  "opus-4-8": {
+    "description": "Deep implementation, debugging, and rigorous review with Claude Opus 4.8.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "claude-opus-4-8"
+  },
+  "sonnet-5": {
+    "description": "Focused implementation, tests, refactoring, and documentation with Claude Sonnet 5.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "claude-sonnet-5"
+  },
+  "gpt-5-6-sol": {
+    "description": "Complex implementation and cross-provider review with GPT-5.6 Sol.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "gpt-5.6-sol"
+  },
+  "gpt-5-6-terra": {
+    "description": "General implementation and specification review with GPT-5.6 Terra.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "gpt-5.6-terra"
+  },
+  "gpt-5-6-luna": {
+    "description": "Interface, frontend, copy, and API-surface polish with GPT-5.6 Luna.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "gpt-5.6-luna"
+  },
+  "grok-4-5": {
+    "description": "Large-context analysis, implementation, and independent review with Grok 4.5.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "grok-4.5"
+  },
+  "kimi-k3": {
+    "description": "Long-horizon coding, knowledge work, and deep reasoning with Kimi K3.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "kimi-k3"
+  },
+  "kimi-k2-7-code": {
+    "description": "Iterative coding and review loops with Kimi K2.7 Code.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "kimi-k2.7-code"
+  },
+  "gemini-3-5-flash": {
+    "description": "Large-context reconnaissance and mechanical analysis with Gemini 3.5 Flash.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "gemini-3-flash-agent"
+  },
+  "grok-composer-2-5-fast": {
+    "description": "Fast coding iterations and bounded repository sweeps with Grok Composer 2.5 Fast.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "grok-composer-2.5-fast"
+  },
+  "minimax-m3": {
+    "description": "Multimodal, long-context coding and repository analysis with MiniMax M3.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "minimax-m3"
+  },
+  "glm-5-2": {
+    "description": "Long-horizon engineering and project-scale analysis with GLM-5.2.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "glm-5.2"
+  }
+}

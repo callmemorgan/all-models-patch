@@ -5,10 +5,11 @@ description: Inspect the current claude-all agent bundle and choose a safe team 
 
 # claude-all agent profiles and team composition
 
-Agent availability is installation-specific. Treat the agent definitions
-supplied to the current `claude-all` session as the source of truth. If needed,
-inspect `~/.cli-proxy-api/claude-all-agents.json`, but never print credentials
-or unrelated local configuration.
+The installer supplies a starter agent bundle, and users may edit it to match
+their available proxy routes. Treat the agent definitions supplied to the
+current `claude-all` session as the source of truth. If needed, inspect
+`~/.cli-proxy-api/claude-all-agents.json`, but never print credentials or
+unrelated local configuration.
 
 ## Selection rules
 

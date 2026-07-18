@@ -21,6 +21,18 @@ and publication requires an accepted Apple notarization submission. The
 installer preserves and re-verifies that signature. Locally patched Claude
 binaries remain ad-hoc signed because they are generated on the consumer's Mac.
 
+## Local model configuration
+
+The shipped agent and context JSON files contain model metadata only—never API
+keys, OAuth tokens, account identifiers, prompts from user sessions, or private
+paths. First-install provisioning creates them under `~/.cli-proxy-api` with
+mode `0600`. Existing files are preserved rather than overwritten because they
+may contain user-specific routing policy.
+
+Gateway credentials remain outside the release. Do not include `client-key` or
+provider credential JSON files in an issue, diagnostic bundle, release archive,
+or model-config contribution.
+
 ## Reporting vulnerabilities
 
 Please report vulnerabilities privately through GitHub's private vulnerability

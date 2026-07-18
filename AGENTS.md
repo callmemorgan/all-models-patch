@@ -17,6 +17,8 @@ patch for Apple Silicon macOS. Read `README.md`, `MAINTAINING.md`, and
   silently enabling or disabling another feature.
 - Keep the active last-known-good runtime until a successor has passed exact
   binary review and live verification.
+- Ship credential-free default agent and context configs together. Provision
+  only missing user files; never overwrite an existing routing configuration.
 - Never edit or delete a published support pack. New recipe revisions receive a
   new `patcher-N` identity; superseded packs remain immutable in the catalog.
 

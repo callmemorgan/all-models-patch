@@ -59,6 +59,19 @@ reviewed Stable build. Do not retrofit a new feature across older packs merely
 for behavioral parity. Older packs may remain in the catalog for rollback, with
 the behavior they originally shipped.
 
+## Shipped model configuration
+
+`config/claude-all-agents.json` and `config/claude-all-contexts.json` are the
+first-install defaults included in every release. Keep them credential-free and
+usable with the current companion gateway model IDs. Every named agent must map
+to an active context profile, and context limits must come from a provider or
+route source that can be rechecked.
+
+The installer provisions only missing files under `~/.cli-proxy-api` with mode
+`0600`; upgrades must never overwrite, merge, or normalize an existing user
+file. When the default roster changes, update both configs together, run the
+model-config tests, and describe only the resulting current setup in user docs.
+
 Selectable packs default to `All`. Generation must enumerate every dependency-
 valid profile (currently 24), reproduce each profile from stock, and verify
 that disabled recipes retain their exact original bytes. Never accept a runtime
@@ -89,7 +102,10 @@ artifacts.
    node bin/verify-release-artifacts
    ```
 
-5. Test the archive on a clean Apple Silicon user account without Node.
+5. Test the archive on a clean Apple Silicon user account without Node. Confirm
+   that both model configs are provisioned on first install, existing configs
+   survive a reinstall byte-for-byte, and `claude-all` exports the shipped
+   context overrides.
 6. Run `bin/publish-release` to create the signed tag and GitHub release. It
    rebuilds, signs, verifies, and notarizes the artifacts from the still-clean
    current commit immediately before publication; pre-existing `dist` files are

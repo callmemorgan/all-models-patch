@@ -53,6 +53,8 @@ readonly next_current="$install_root/.current-$$"
 /bin/ln -sfn "$install_root/current/bin/claude-all" "$local_bin/claude-all"
 /bin/ln -sfn "$install_root/current/bin/claude-stable" "$local_bin/claude-stable"
 
+"$local_bin/all-models-patch" provision-model-configs
+
 /usr/bin/ditto "$source_root/config/stable-monitor.plist" "$plist"
 /usr/libexec/PlistBuddy -c "Set :ProgramArguments:0 $local_bin/all-models-patch" "$plist"
 /usr/libexec/PlistBuddy -c "Set :StandardOutPath $logs/stable-monitor.stdout.log" "$plist"

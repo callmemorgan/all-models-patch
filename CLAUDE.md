@@ -16,6 +16,8 @@ patch for Apple Silicon macOS. Read `README.md`, `MAINTAINING.md`, and
   atomic symlink replacement.
 - Consumer runtime commands must not require Node, npm, Bun, GnuPG, or GitHub
   CLI.
+- Shipped model configs must be credential-free, internally consistent, and
+  provisioned only when the corresponding user file is absent.
 - Do not weaken release signature, Apple signature, hash, architecture,
   match-count, code-signing, or smoke-test checks to make an update pass.
 

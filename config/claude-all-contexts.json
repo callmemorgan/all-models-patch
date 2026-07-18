@@ -19,6 +19,7 @@
     "gpt-5.6-luna": { "contextTokens": 372000, "compactAtTokens": 300000, "status": "route-validated", "source": "codex-client-models" },
     "grok-4.5": { "contextTokens": 500000, "compactAtTokens": 420000, "status": "route-validated", "source": "cliproxyapi-registry" },
     "kimi-k2.7-code": { "contextTokens": 262144, "compactAtTokens": 210000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "kimi-k3": { "contextTokens": 1000000, "compactAtTokens": 900000, "status": "route-validated", "source": "kimi-official-docs" },
     "gemini-3-flash-agent": { "contextTokens": 1048576, "compactAtTokens": 950000, "status": "route-validated", "source": "cliproxyapi-registry" },
     "grok-composer-2.5-fast": { "contextTokens": 200000, "compactAtTokens": 160000, "status": "route-validated", "source": "cliproxyapi-registry" },
     "minimax-m3": { "contextTokens": 524288, "compactAtTokens": 471859, "status": "route-validated", "source": "ollama-cloud-manifest" },
