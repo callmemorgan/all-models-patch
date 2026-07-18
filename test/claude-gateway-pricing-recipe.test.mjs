@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import { locateGatewayBootstrapSeam, reviewedGatewayPricingRecipe } from "../src/claude-gateway-pricing-recipe.mjs";
 
-const version = "2.1.202";
+const version = "2.1.205";
 const stable = `${process.env.HOME}/.local/share/claude-stable/versions/${version}/claude`;
 
 test(`adds native gateway pricing bootstrap for current Stable ${version}`, { skip: !existsSync(stable) }, () => {

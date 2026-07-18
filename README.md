@@ -36,16 +36,41 @@ block an otherwise valid runtime installation.
 - Apple Silicon Mac (`darwin-arm64`)
 - macOS `codesign`, `ssh-keygen`, `tar`, and `launchctl`
 - the companion CLIProxyAPI fork listening on `http://127.0.0.1:8317`
-- local gateway configuration at:
+- a local proxy client key at:
 
   ```text
   ~/.cli-proxy-api/client-key
-  ~/.cli-proxy-api/claude-all-agents.json
-  ~/.cli-proxy-api/claude-all-contexts.json
   ```
 
 Consumers do not need Node, Bun, npm, GnuPG, the GitHub CLI, or a repository
 checkout.
+
+## Model configuration
+
+The release ships a ready-to-use named-agent bundle and context map. The
+installer provisions them on first install at:
+
+```text
+~/.cli-proxy-api/claude-all-agents.json
+~/.cli-proxy-api/claude-all-contexts.json
+```
+
+Existing files are always preserved, including during upgrades and self-update.
+Run `all-models-patch provision-model-configs` to restore either missing file
+from the installed release without replacing the other one.
+
+The agent bundle maps friendly `agent_type` names such as `kimi-k3`,
+`gpt-5-6-sol`, and `grok-4-5` to the real model IDs exposed by the companion
+gateway. A configured agent is usable only when that provider and model are
+available through the local proxy; edit the JSON to match the accounts and
+routes enabled on the machine.
+
+The context map is client-side metadata because Claude Code does not consume
+context-window limits from gateway model discovery. `claude-all` converts each
+route-validated entry into launch-time context and auto-compaction overrides.
+For example, the shipped Kimi K3 profile uses a 1,000,000-token context window
+and compacts at 900,000 tokens. Changes take effect in newly launched
+`claude-all` processes.
 
 ## Install a release
 
@@ -107,6 +132,8 @@ The installer creates:
 ~/.local/bin/claude-all
 ~/.local/bin/claude-stable
 ~/.local/share/all-models-patch/releases/<manager-version>/
+~/.cli-proxy-api/claude-all-agents.json
+~/.cli-proxy-api/claude-all-contexts.json
 ~/Library/LaunchAgents/com.callmemorgan.all-models-patch.stable-monitor.plist
 ```
 
@@ -195,6 +222,7 @@ all-models-patch check
 all-models-patch update
 all-models-patch features
 all-models-patch configure
+all-models-patch provision-model-configs
 all-models-patch doctor
 all-models-patch rollback 2.1.197
 all-models-patch uninstall --yes
@@ -209,6 +237,7 @@ The signed portfolio currently contains exact Apple Silicon support for:
 | `2.1.197` | `8cc0c4d1e4eb1dca3b0cc92ab02ee3505de764e023f8c901761c167b72041fb8` |
 | `2.1.201` | `a0852d76afc47b30f5cb0b7625ec9a7714cb189f2eeef6c28c77e2be954fb7fd` |
 | `2.1.202` | `7414f707861e2fe5afef33a466f888a8d2170e5028f5e9d2858f1d3ef45ffca5` |
+| `2.1.205` | `33e28624c5ae84f2bd7d2d8761e5d2e77997ba965cb11b6448de6b6e2c566f9c` |
 
 Support is keyed by version, platform, and binary hash. A republished binary
 with the same version but a different hash is unsupported until reviewed. The
@@ -254,8 +283,9 @@ the previously active `claude-all` runtime.
 owns this runtime portfolio. The ordinary `claude` installation remains stock.
 
 Uninstall removes the manager, its feature selection, LaunchAgent, and isolated
-stock/patched runtime portfolios. It intentionally preserves `~/.claude-all`, `~/.cli-proxy-api`,
-the companion proxy, and the ordinary stock `claude` installation.
+stock/patched runtime portfolios. It intentionally preserves `~/.claude-all`,
+the provisioned model configs and credentials under `~/.cli-proxy-api`, the
+companion proxy, and the ordinary stock `claude` installation.
 
 ## Development
 

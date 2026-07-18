@@ -1,6 +1,6 @@
 # `set_goal` patch design
 
-Claude Code 2.1.201 and 2.1.202 already contain the full `/goal` runtime:
+Claude Code 2.1.201, 2.1.202, and 2.1.205 already contain the full `/goal` runtime:
 session-scoped Stop-hook registration, goal replacement, evaluator feedback, automatic
 continuation, status counters, automatic clearing on success, transcript
 markers, and restoration when a session resumes. The patch therefore exposes
@@ -16,10 +16,11 @@ pack makes two exact, fail-closed replacements:
 1. Rename the unique `TodoWrite` tool-name binding to lowercase `set_goal`.
 2. Replace the complete dormant `TodoWrite` definition with a smaller tool
    definition whose `call()` validates one `objective` string and delegates to
-   Claude Code's existing internal goal setter (`ICt` in 2.1.201 and `KCt` in
-   2.1.202).
+   Claude Code's existing internal goal setter (`ICt` in 2.1.201, `KCt` in
+   2.1.202, and `Fnr` in 2.1.205).
 
-The replacement initializes the version-specific goal module (`aJe` or `EJe`)
+The replacement initializes the version-specific goal module (`aJe`, `EJe`, or
+`Jkt`)
 before calling it. It does
 not patch the evaluator, Stop-hook dispatcher, persistence format, transcript
 format, status UI, or `/goal` command. The support pack remains bound to the
