@@ -3,8 +3,9 @@ import { existsSync, realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
+import { agentTeamsEnvironment, effectiveAgentTeamsConfig, readAgentTeamsConfig, writeAgentTeamsConfig } from "./agent-teams.mjs";
 import { loadContextEnvironment } from "./context-map.mjs";
-import { ALL_FEATURE_IDS, FEATURE_GROUPS, effectiveFeatureConfig, featureReport, readFeatureConfig, writeFeatureConfig } from "./features.mjs";
+import { ALL_FEATURE_IDS, FEATURE_GROUPS, effectiveFeatureConfig, featureProfileKey, featureReport, readFeatureConfig, writeFeatureConfig } from "./features.mjs";
 import { maybeSelfUpdate } from "./self-update.mjs";
 import { provisionModelConfigs, validateShippedModelConfigs } from "./model-configs.mjs";
 import {
@@ -61,16 +62,37 @@ try {
     if (json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
     else process.stdout.write(`${formatFeatures(report)}\n`);
   } else if (command === "configure") {
-    const existing = readFeatureConfig(paths.featureConfigPath);
-    if (args.includes("--if-unset") && existing) {
-      if (!quiet) process.stdout.write("Feature selection already configured; preserving it.\n");
-    } else {
-      const enabled = await requestedFeatures(args, existing?.enabled ?? ALL_FEATURE_IDS);
-      const report = featureReport(writeFeatureConfig(paths.featureConfigPath, enabled));
-      if (json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-      else if (!quiet) process.stdout.write(`${formatFeatures(report)}\n`);
-      if (!args.includes("--no-update")) await reconcileStable({ toolRoot, paths, quiet: quiet || json });
-    }
+    validateAgentTeamsFlags(args);
+    const featureSelectionRequested = hasFeatureSelectionFlags(args);
+    const agentTeamsSelectionRequested = hasAgentTeamsSelectionFlag(args);
+    const existingFeatures = readFeatureConfig(paths.featureConfigPath);
+    const existingAgentTeams = agentTeamsSelectionRequested ? null : readAgentTeamsConfig(paths.agentTeamsConfigPath);
+    const ifUnset = args.includes("--if-unset");
+    const configureFeatures = ifUnset
+      ? featureSelectionRequested || !existingFeatures
+      : featureSelectionRequested || !agentTeamsSelectionRequested;
+    const configureAgentTeams = ifUnset
+      ? agentTeamsSelectionRequested || !existingAgentTeams
+      : agentTeamsSelectionRequested || !featureSelectionRequested;
+
+    let nextFeatures = null;
+    if (configureFeatures) nextFeatures = await requestedFeatures(args, existingFeatures?.enabled ?? ALL_FEATURE_IDS);
+    let nextAgentTeams = null;
+    if (configureAgentTeams) nextAgentTeams = await requestedAgentTeams(args, existingAgentTeams?.enabled);
+
+    const featuresChanged = nextFeatures !== null
+      && (!existingFeatures || featureProfileKey(nextFeatures) !== featureProfileKey(existingFeatures.enabled));
+    const features = nextFeatures === null
+      ? effectiveFeatureConfig(paths.featureConfigPath)
+      : writeFeatureConfig(paths.featureConfigPath, nextFeatures);
+    const agentTeams = nextAgentTeams === null
+      ? effectiveAgentTeamsConfig(paths.agentTeamsConfigPath)
+      : writeAgentTeamsConfig(paths.agentTeamsConfigPath, nextAgentTeams);
+
+    const report = { ...featureReport(features), agentTeams };
+    if (json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+    else if (!quiet) process.stdout.write(`${formatFeatures(report)}\n${formatAgentTeams(agentTeams)}\n`);
+    if (featuresChanged && !args.includes("--no-update")) await reconcileStable({ toolRoot, paths, quiet: quiet || json });
   } else if (command === "doctor") {
     const { path, catalog } = loadSupportCatalog(toolRoot);
     validateShippedModelConfigs(toolRoot);
@@ -88,6 +110,9 @@ try {
     process.stdout.write(`${json ? JSON.stringify(report, null, 2) : Object.entries(report).map(([key, value]) => `${key}: ${value}`).join("\n")}\n`);
   } else if (command === "runtime-path") {
     process.stdout.write(resolveVerifiedRuntime({ toolRoot, paths }));
+  } else if (command === "agent-teams-env") {
+    const environment = agentTeamsEnvironment(effectiveAgentTeamsConfig(paths.agentTeamsConfigPath));
+    if (environment.length > 0) process.stdout.write(`${environment.join("\n")}\n`);
   } else if (command === "provision-model-configs") {
     const result = provisionModelConfigs({ toolRoot, home: paths.home });
     if (json) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -176,6 +201,43 @@ async function askProfile(readline, defaultProfile) {
   }
 }
 
+async function requestedAgentTeams(argv, current) {
+  if (argv.includes("--agent-teams")) return true;
+  if (argv.includes("--no-agent-teams")) return false;
+  if (!process.stdin.isTTY || !process.stdout.isTTY) return current ?? false;
+
+  const readline = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return await askYesNo(readline, "Enable experimental Claude Code agent teams?", current ?? false);
+  } finally {
+    readline.close();
+  }
+}
+
+async function askYesNo(readline, question, defaultEnabled) {
+  while (true) {
+    const answer = (await readline.question(`${question} [${defaultEnabled ? "Y/n" : "y/N"}] `)).trim().toLowerCase();
+    if (answer === "") return defaultEnabled;
+    if (answer === "y" || answer === "yes") return true;
+    if (answer === "n" || answer === "no") return false;
+    process.stdout.write("Enter yes or no.\n");
+  }
+}
+
+function validateAgentTeamsFlags(argv) {
+  if (argv.includes("--agent-teams") && argv.includes("--no-agent-teams")) {
+    throw new Error("--agent-teams and --no-agent-teams are mutually exclusive");
+  }
+}
+
+function hasAgentTeamsSelectionFlag(argv) {
+  return argv.includes("--agent-teams") || argv.includes("--no-agent-teams");
+}
+
+function hasFeatureSelectionFlags(argv) {
+  return ["--all", "--none", "--only", "--enable", "--disable"].some((flag) => argv.includes(flag));
+}
+
 function optionValue(argv, name) {
   const index = argv.indexOf(name);
   if (index < 0) return null;
@@ -192,4 +254,8 @@ function formatFeatures(report) {
   const lines = [`Profile: ${report.profile === "all" ? "All" : "Custom"}`];
   for (const feature of report.features) lines.push(`${feature.enabled ? "yes" : "no "}  ${feature.id} — ${feature.name}`);
   return lines.join("\n");
+}
+
+function formatAgentTeams(config) {
+  return `Agent teams: ${config.enabled ? "enabled (experimental)" : "disabled"}`;
 }

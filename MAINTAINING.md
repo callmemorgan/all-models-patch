@@ -79,6 +79,25 @@ hash computed from an unlisted combination. Consumer upgrades preserve the
 existing feature config; historical schema-1 packs remain fixed all-or-nothing
 artifacts.
 
+## Experimental agent-team preference
+
+Claude Code's native agent-team switch is a launcher preference, not a patch
+feature. Keep `agent-teams.json` separate from `FEATURE_GROUPS`, support-pack
+profile keys, and deterministic patched hashes. Missing preference data means
+disabled; malformed, unreadable, or unsupported present data must fail closed
+before the Claude runtime starts.
+
+The shell launcher must obtain the environment assignment from the compiled
+manager and explicitly remove an inherited
+`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` value when disabled. Do not add a Node or
+Bun runtime dependency to `claude-all`. Disabling native teams must not unload
+the swarm plugin or named-agent bundle.
+
+Normal first installs prompt with No as the default, while non-interactive
+installs also default to disabled. Self-update must neither prompt for nor write
+the preference. Reinstalls preserve a configured choice unless an explicit
+`--agent-teams` or `--no-agent-teams` option is supplied.
+
 ## Release sequence
 
 1. Bump `package.json` and increment `support/catalog.json.releaseSequence`.
@@ -105,7 +124,10 @@ artifacts.
 5. Test the archive on a clean Apple Silicon user account without Node. Confirm
    that both model configs are provisioned on first install, existing configs
    survive a reinstall byte-for-byte, and `claude-all` exports the shipped
-   context overrides.
+   context overrides. Accept the default No for native agent teams and verify the
+   environment variable is absent, then opt in and verify it appears only in a
+   newly launched session. Exercise `--self-update` and confirm the preference
+   bytes and modification time remain unchanged.
 6. Run `bin/publish-release` to create the signed tag and GitHub release. It
    rebuilds, signs, verifies, and notarizes the artifacts from the still-clean
    current commit immediately before publication; pre-existing `dist` files are

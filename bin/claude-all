@@ -44,15 +44,20 @@ fi
 
 runtime="$($manager runtime-path)"
 context_env=("${(@f)$($manager context-env "$context_map")}")
+agent_teams_env=()
+agent_teams_output="$($manager agent-teams-env)"
+if [[ -n "$agent_teams_output" ]]; then
+  agent_teams_env=("${(@f)agent_teams_output}")
+fi
 
 export DISABLE_UPDATES=1
 export CLAUDE_CONFIG_DIR="$claude_config_dir"
 export ANTHROPIC_BASE_URL="http://127.0.0.1:8317"
 export ANTHROPIC_AUTH_TOKEN="$(<"$key_file")"
 export CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1
-export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+unset CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
 
-exec env "${context_env[@]}" "$runtime" \
+exec env "${agent_teams_env[@]}" "${context_env[@]}" "$runtime" \
   --plugin-dir "$swarm_plugin" \
   --agents "$(command cat -- "$agents_file")" \
   "$@"

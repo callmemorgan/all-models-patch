@@ -12,6 +12,11 @@ $ARGUMENTS
 You are the swarm lead. Use Claude Code's native agent-team tools to execute the
 task as a parallel fan-out, then synthesize the workers' results for the user.
 
+This command requires native agent teams. If the team/task tools are unavailable,
+stop before doing any work and tell the user to run
+`all-models-patch configure --agent-teams --no-update`, then start a new
+`claude-all` session.
+
 Rules:
 
 1. If `<swarm_task>` is empty, stop and ask the user to invoke

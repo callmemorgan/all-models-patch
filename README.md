@@ -132,15 +132,26 @@ The installer creates:
 ~/.local/bin/claude-all
 ~/.local/bin/claude-stable
 ~/.local/share/all-models-patch/releases/<manager-version>/
+~/.config/all-models-patch/features.json
+~/.config/all-models-patch/agent-teams.json
 ~/.cli-proxy-api/claude-all-agents.json
 ~/.cli-proxy-api/claude-all-contexts.json
 ~/Library/LaunchAgents/com.callmemorgan.all-models-patch.stable-monitor.plist
 ```
 
-On first install it offers **All** (recommended) or **Some**, then performs the
-first Stable reconciliation. Pressing Enter once selects **All**, as does a
-non-interactive install. Choosing **Some** opens a Y/n choice for each feature.
-Existing selections are preserved on upgrades.
+On first install it offers **All** (recommended) or **Some** for the patch
+profile, then asks whether to enable experimental Claude Code agent teams.
+Pressing Enter selects **All** for the patch profile and **No** for agent teams.
+A non-interactive install uses the same defaults. Choosing **Some** opens a Y/n
+choice for each patch feature. Existing choices are preserved on reinstall and
+self-update.
+
+Scripted installs can choose the agent-team setting explicitly:
+
+```bash
+zsh all-models-patch-VERSION/bin/install-all-models-patch --agent-teams
+zsh all-models-patch-VERSION/bin/install-all-models-patch --no-agent-teams
+```
 
 ## Feature selection
 
@@ -169,6 +180,31 @@ cannot be selected without discovery. The current forward-only support pack
 contains an exact deterministic hash for every permitted combination (24
 profiles); arbitrary or incomplete combinations fail closed. Historical
 rollback packs retain the fixed feature set they originally shipped with.
+
+## Experimental agent teams
+
+Native Claude Code agent teams are a launcher preference, not a binary patch
+feature. They are disabled by default and can be changed without rebuilding the
+patched runtime:
+
+```bash
+all-models-patch configure --agent-teams --no-update
+all-models-patch configure --no-agent-teams --no-update
+```
+
+The choice is stored in
+`~/.config/all-models-patch/agent-teams.json` and applies to newly launched
+`claude-all` sessions. When enabled, the launcher sets
+`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`; when disabled, it removes any inherited
+value before starting Claude Code. A missing preference also means disabled.
+Invalid preference data stops the launch rather than silently selecting a mode.
+
+Disabling native teams does not unload the bundled swarm plugin or remove the
+named-agent bundle. The `/claude-all-swarm:swarm` command therefore remains
+installed, but it cannot launch teammates until native teams are enabled and a
+new `claude-all` session is started. Self-updates never prompt for or rewrite
+this preference. Because the preference is outside `FEATURE_GROUPS`, it does not
+change support-pack profiles or deterministic runtime hashes.
 
 ## Stable updates
 
@@ -282,8 +318,8 @@ the previously active `claude-all` runtime.
 `DISABLE_UPDATES=1`; the project manager, not Claude Code's built-in updater,
 owns this runtime portfolio. The ordinary `claude` installation remains stock.
 
-Uninstall removes the manager, its feature selection, LaunchAgent, and isolated
-stock/patched runtime portfolios. It intentionally preserves `~/.claude-all`,
+Uninstall removes the manager, its patch and agent-team preferences, LaunchAgent,
+and isolated stock/patched runtime portfolios. It intentionally preserves `~/.claude-all`,
 the provisioned model configs and credentials under `~/.cli-proxy-api`, the
 companion proxy, and the ordinary stock `claude` installation.
 

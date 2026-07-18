@@ -37,6 +37,7 @@ export function managerPaths(home = process.env.HOME, stateHome = process.env.XD
     lockPath: join(stateRoot, "all-models-patch", ".stable-update.lock"),
     configDirectory: join(configRoot, "all-models-patch"),
     featureConfigPath: join(configRoot, "all-models-patch", "features.json"),
+    agentTeamsConfigPath: join(configRoot, "all-models-patch", "agent-teams.json"),
     stockRoot: join(home, ".local", "share", "claude-stable"),
     patchedRoot: join(home, ".local", "share", "claude-all"),
     managerRoot: join(home, ".local", "share", "all-models-patch"),

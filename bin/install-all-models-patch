@@ -12,6 +12,33 @@ readonly plist="$launch_agents/$label.plist"
 readonly expected_team_id="5LTMYWRTYR"
 readonly expected_authority="Developer ID Application: MORGANA FAYE ALLEN ($expected_team_id)"
 
+self_update=false
+typeset -a agent_teams_args
+agent_teams_args=()
+for argument in "$@"; do
+  case "$argument" in
+    --self-update)
+      self_update=true
+      ;;
+    --agent-teams|--no-agent-teams)
+      if (( ${#agent_teams_args[@]} > 0 )); then
+        print -u2 "all-models-patch: --agent-teams and --no-agent-teams are mutually exclusive"
+        exit 1
+      fi
+      agent_teams_args+=("$argument")
+      ;;
+    *)
+      print -u2 "usage: install-all-models-patch [--agent-teams | --no-agent-teams]"
+      print -u2 "       install-all-models-patch --self-update"
+      exit 1
+      ;;
+  esac
+done
+if [[ "$self_update" == true && ${#agent_teams_args[@]} -gt 0 ]]; then
+  print -u2 "all-models-patch: --self-update cannot be combined with an agent-teams choice"
+  exit 1
+fi
+
 if [[ "$(uname -s)" != "Darwin" || "$(uname -m)" != "arm64" ]]; then
   print -u2 "all-models-patch: only Apple Silicon macOS is supported"
   exit 1
@@ -61,8 +88,8 @@ readonly next_current="$install_root/.current-$$"
 /usr/libexec/PlistBuddy -c "Set :StandardErrorPath $logs/stable-monitor.stderr.log" "$plist"
 /usr/bin/plutil -lint "$plist" >/dev/null
 
-if [[ "${1:-}" != "--self-update" ]]; then
-  "$local_bin/all-models-patch" configure --if-unset --no-update
+if [[ "$self_update" != true ]]; then
+  "$local_bin/all-models-patch" configure --if-unset --no-update "${agent_teams_args[@]}"
   /bin/launchctl bootout "gui/$UID/$label" 2>/dev/null || true
   /bin/launchctl bootstrap "gui/$UID" "$plist"
   "$local_bin/all-models-patch" check --no-self-update
