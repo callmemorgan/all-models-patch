@@ -4,3 +4,4 @@ protocol/
 runtime/
 dist/
 .*.bun-build
+CLAUDE.local.md
