@@ -1,6 +1,6 @@
 {
   "name": "all-models-patch",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "private": true,
   "type": "module",
   "description": "A patched Claude Code harness for real models from a local gateway.",
