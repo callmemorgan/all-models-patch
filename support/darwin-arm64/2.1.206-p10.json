@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 2,
+  "id": "darwin-arm64/2.1.206/3197aba4442dbd5b3df42b6f35e6d7bd03b5e48ce18b7a3c5c6f5f8c28e03b7f/patcher-10",
+  "claudeVersion": "2.1.206",
+  "platform": "darwin-arm64",
+  "architecture": "arm64",
+  "patchEngineSchema": 2,
+  "patcherVersion": 10,
+  "stock": {
+    "sha256": "3197aba4442dbd5b3df42b6f35e6d7bd03b5e48ce18b7a3c5c6f5f8c28e03b7f",
+    "size": 240395024,
+    "appleTeamIdentifier": "Q6L2SF6YDW"
+  },
+  "expectedUnsignedPatchedSha256": "947064f9ed880c83fc331d498a6b90d894673079f97073b166ec208596b9c207",
+  "analysis": {
+    "attributionOffset": 218899408,
+    "gatewayFilterOffset": 213171720,
+    "gatewayBootstrapOffset": 220421386,
+    "contextResolverOffset": 214063969,
+    "compactResolverOffset": 222910843,
+    "contextCallCount": 20,
+    "compactCallCount": 12
+  },
+  "recipes": [
+    {
+      "id": "attribution",
+      "original": "function OCg(){let e=Ni(),t=ZA(e)?$Dn(Syt.firstParty):u0u(e)?$Dn(e):\"Claude\",r=`\\uD83E\\uDD16 Generated with [Claude Code](${gCt})`,n=`Co-Authored-By: ${t} <noreply@anthropic.com>`,o=$n(),i=o.attribution;if(i&&(i.commit!==void 0||i.pr!==void 0))return{commit:i.commit??n,pr:i.pr??r};if(o.includeCoAuthoredBy===!1)return{commit:\"\",pr:\"\"};return{commit:n,pr:r}}function u0u(e){if(VQ(e)===null)return!1;let t=pYe(e);if(t!==e&&Object.hasOwn(npe,t))return!0;let r=so(e),n=Gp(e).toLowerCase(),o=n.indexOf(r),i=r.length;if(o===-1&&r.endsWith(\"-0\")){let u=r.slice(0,-2);o=n.indexOf(u),i=u.length}if(o===-1){if(!e.includes(\"application-inference-profile\"))return!1;let u=fTr(Gp(e));return!!u&&u0u(u)}let s=n.slice(0,o),a=n.slice(o+i),l=s===\"\"||/[./]$/.test(s),c=/^(?:-fast|-latest)?(?:-v\\d+@\\d{8}|[-@]\\d{8})?(?:-v\\d+(?::\\d+)?)?$/.test(a);return l&&c}",
+      "replacement": "function OCg(){let e=Ni(),a=u0u(e),t=a?$Dn(Syt.firstParty):e,m=a?\"noreply@anthropic.com\":/^(gpt|codex)/.test(e)?\"noreply@openai.com\":/^gemini/.test(e)?\"gemini-code-assist[bot]@users.noreply.github.com\":/^grok/.test(e)?\"grok@x.ai\":/^kimi/.test(e)?\"noreply@moonshot.ai\":/^minimax/.test(e)?\"noreply@minimax.io\":/^glm/.test(e)?\"noreply@z.ai\":\"noreply@unknown.invalid\",r=`\\uD83E\\uDD16 Generated with [Claude Code](${gCt})`,n=`Generated-With: @callmemorgan/all-models-patch\\nCo-Authored-By: ${t} <${m}>`,o=$n(),i=o.attribution;if(i&&(i.commit!==void 0||i.pr!==void 0))return{commit:i.commit??n,pr:i.pr??r};if(o.includeCoAuthoredBy===!1)return{commit:\"\",pr:\"\"};return{commit:n,pr:r}}function u0u(e){return /(^|[./])(?:claude|anthropic)[-./]/i.test(e)}",
+      "expectedMatches": 1
+    },
+    {
+      "id": "gateway-filter",
+      "original": "let l=a.data.data.filter((d)=>/^(claude|anthropic)/i.test(d.id));",
+      "replacement": "let l=a.data.data;",
+      "expectedMatches": 1
+    },
+    {
+      "id": "context-resolver",
+      "original": "function Jcc(e,t){if(HT(e))return 1e6;if(t?.includes(upe.header)&&L5(e))return 1e6;if(lO(e))return 1e6;let r=n2n(e);if(r!==null)return r;let n=we.CLAUDE_CODE_MAX_CONTEXT_TOKENS;if(n!==void 0&&n>0&&!so(ei(e)).startsWith(\"claude-\"))return n;return gHr}",
+      "replacement": "function Jcc(e,t){if(HT(e))return 1e6;if(t?.includes(upe.header)&&L5(e))return 1e6;if(lO(e))return 1e6;let r=+process.env[\"CLAUDE_ALL_CONTEXT_\"+e]||n2n(e);if(r)return r;let n=we.CLAUDE_CODE_MAX_CONTEXT_TOKENS;return n>0?n:gHr}",
+      "expectedMatches": 1
+    },
+    {
+      "id": "compact-resolver",
+      "original": "function HV(e,t){let r=so(e),n=WE(),o=lw(e,n);if(process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW){let l=xDe(\"CLAUDE_CODE_AUTO_COMPACT_WINDOW\",process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW,V_o,pks);if(l.status!==\"invalid\"){let c=Math.max(V_o,l.effective);return{window:Math.min(o,c),configured:c,source:\"env\"}}}if(t!==void 0)return{window:Math.min(o,t),configured:t,source:\"settings\"};let i=pDy(r);if(i.window!==null)return{window:Math.min(o,i.window),configured:i.window,source:\"clientdata\"};let s=mks(r);if(s!==void 0)return{window:Math.min(o,s),configured:s,source:\"experiment\"};if(o<1e6&&(dDy.has(r)||$vi(e,n)))return{window:Math.min(o,USe),configured:USe,source:\"model-default\"};let a=i.replacesDefault?void 0:uDy(r);if(a!==void 0)return{window:Math.min(o,a),configured:a,source:\"model-default\"};return{window:o,configured:o,source:\"auto\"}}",
+      "replacement": "function HV(e,t){let r=so(e),n=WE(),o=lw(e,n),m=Math.min,p=process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW;if(p){let l=xDe(\"CLAUDE_CODE_AUTO_COMPACT_WINDOW\",p,V_o,pks);if(l.status!==\"invalid\"){let c=Math.max(V_o,l.effective);return{window:m(o,c),configured:c,source:\"env\"}}}if(t??=+process.env[\"CLAUDE_ALL_COMPACT_\"+e]||void 0,t!==void 0)return{window:m(o,t),configured:t,source:\"settings\"};let i=pDy(r);if(i.window!==null)return{window:m(o,i.window),configured:i.window,source:\"clientdata\"};let s=mks(r);if(s!==void 0)return{window:m(o,s),configured:s,source:\"experiment\"};if(o<1e6&&(dDy.has(r)||$vi(e,n)))return{window:m(o,USe),configured:USe,source:\"model-default\"};let a=i.replacesDefault?void 0:uDy(r);if(a!==void 0)return{window:m(o,a),configured:a,source:\"model-default\"};return{window:o,configured:o,source:\"auto\"}}",
+      "expectedMatches": 1
+    },
+    {
+      "id": "goal-tool-name",
+      "original": "var _U=\"TodoWrite\";",
+      "replacement": "var _U=\"set_goal\";",
+      "expectedMatches": 1
+    },
+    {
+      "id": "goal-tool",
+      "original": "var ewy,twy,Ovd;var Lvd=T(()=>{Vn();ct();ns();MN();Dco();Vst();Pvd();ewy=ye(()=>E.strictObject({todos:qot().describe(\"The updated todo list\")})),twy=ye(()=>E.object({oldTodos:qot().describe(\"The todo list before the update\"),newTodos:qot().describe(\"The todo list after the update\")})),Ovd=Fi({name:_U,searchHint:\"manage the session task checklist\",maxResultSizeChars:1e5,strict:!0,async description(){return Dvd},async prompt({model:e}){return Hvd(e)},get inputSchema(){return ewy()},get outputSchema(){return twy()},userFacingName(){return\"\"},shouldDefer:!0,isEnabled(){return!tH()&&!_J()},toAutoClassifierInput(e){return`${e.todos.length} items`},async checkPermissions(e){return{behavior:\"allow\",updatedInput:e}},renderToolUseMessage(){return null},async call({todos:e},t){let r=t.getAppState(),n=t.agentId??Rt(),o=r.todos[n]??[],s=e.every((a)=>a.status===\"completed\")?[]:e;return t.setAppState((a)=>({...a,todos:{...a.todos,[n]:s}})),{data:{oldTodos:o,newTodos:e}}},mapToolResultToToolResultBlockParam(e,t){return{tool_use_id:t,type:\"tool_result\",content:\"Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable\"}}})});",
+      "replacement": "var ewy,twy,Ovd;var Lvd=T(()=>{Vn();ct();ns();MN();Dco();Vst();Pvd();ewy=ye(()=>E.strictObject({objective:E.string().min(1).max(oir).describe(\"A measurable condition and the evidence that proves it\")})),Ovd=Fi({name:_U,maxResultSizeChars:1e5,alwaysLoad:!0,async description(){return\"Keep working until a session goal is met\"},async prompt(){return\"Set a measurable goal when the user asks you to work autonomously. It persists across turns, replaces any active goal, and is evaluated from evidence in the conversation.\"},get inputSchema(){return ewy()},userFacingName(){return\"Set goal\"},isEnabled(){return!0},isConcurrencySafe(){return!1},async checkPermissions(e){return{behavior:\"allow\",updatedInput:e}},renderToolUseMessage(){return null},async call({objective:e},t){let r=e.trim(),n=sir(r,t);if(n!==null)throw Error(n);return{data:{objective:r}}},mapToolResultToToolResultBlockParam(e,t){return{tool_use_id:t,type:\"tool_result\",content:`Goal active: ${e.objective}. Continue working until it is met.`}}})});",
+      "expectedMatches": 1
+    },
+    {
+      "id": "gateway-pricing-bootstrap",
+      "original": "async function pGg(e){if(Rn()===\"gateway\"){if(!we.CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY)return C(\"[Bootstrap] Skipped gateway /v1/models (CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY not set)\"),{additional_model_options:[]};return mGg()}if(Ea())return C(\"[Bootstrap] Skipped: Nonessential traffic disabled\"),null;if(Rn()!==\"firstParty\")return C(\"[Bootstrap] Skipped: 3P provider\"),null;let{params:t,userAgent:r}=Bju(e),n=async(s,a)=>{C(\"[Bootstrap] Fetching\");let l=await Io.get(`${s}/api/claude_cli/bootstrap`,{headers:{\"Content-Type\":\"application/json\",\"User-Agent\":r,...Hvi(),...a},params:t,timeout:5000}),c=dGg().safeParse(l.data);if(!c.success)return C(`[Bootstrap] Response failed validation: ${c.error.message}`),et(\"api_bootstrap_fetch\",\"parse_failed\"),null;return C(\"[Bootstrap] Fetch ok\"),c.data},o=mpe();if(!o&&xR())try{let[s,a]=await Promise.all([jYe(),s6t()]);if(s!==null)return await n(we.ANTHROPIC_BASE_URL||a?.baseURL||ds().BASE_API_URL,{...a?.extraHeaders,Authorization:`Bearer ${await s.getToken()}`,\"anthropic-beta\":kx})}catch(s){return C(`[Bootstrap] WIF fetch failed: ${Io.isAxiosError(s)?s.response?.status??s.code:s instanceof Error?s.constructor.name:\"unknown\"}`),et(\"api_bootstrap_fetch\",\"wif_unavailable\"),null}if(!(hs()?.accessToken&&sO())&&!o)return C(\"[Bootstrap] Skipped: no usable OAuth, WIF, or API key\"),null;try{return await TF(async()=>{let s=hs()?.accessToken,a;if(s&&sO())a={Authorization:`Bearer ${s}`,\"anthropic-beta\":kx};else if(o)a={\"x-api-key\":o};else return C(\"[Bootstrap] No auth available on retry, aborting\"),null;return n(ds().BASE_API_URL,a)})}catch(s){throw C(`[Bootstrap] Fetch failed: ${Io.isAxiosError(s)?s.response?.status??s.code:\"unknown\"}`),be(\"api_bootstrap_fetch\",\"request_failed\"),s}}",
+      "replacement": "async function pGg(e){if(Ea())return C(\"[Bootstrap] Skipped: Nonessential traffic disabled\"),null;if(Rn()!==\"firstParty\")return C(\"[Bootstrap] Skipped: 3P provider\"),null;let{params:t,userAgent:r}=Bju(e),n=async(s,a)=>{C(\"[Bootstrap] Fetching\");let l=await Io.get(`${s}/api/claude_cli/bootstrap`,{headers:{\"Content-Type\":\"application/json\",\"User-Agent\":r,...Hvi(),...a},params:t,timeout:5000}),c=dGg().safeParse(l.data);if(!c.success)return C(`[Bootstrap] Response failed validation: ${c.error.message}`),et(\"api_bootstrap_fetch\",\"parse_failed\"),null;return C(\"[Bootstrap] Fetch ok\"),c.data},o=mpe();if(we.ANTHROPIC_BASE_URL&&process.env.ANTHROPIC_AUTH_TOKEN)return n(we.ANTHROPIC_BASE_URL,{Authorization:`Bearer ${process.env.ANTHROPIC_AUTH_TOKEN}`});if(!o&&xR())try{let[s,a]=await Promise.all([jYe(),s6t()]);if(s!==null)return await n(we.ANTHROPIC_BASE_URL||a?.baseURL||ds().BASE_API_URL,{...a?.extraHeaders,Authorization:`Bearer ${await s.getToken()}`,\"anthropic-beta\":kx})}catch(s){return C(`[Bootstrap] WIF fetch failed: ${Io.isAxiosError(s)?s.response?.status??s.code:s instanceof Error?s.constructor.name:\"unknown\"}`),et(\"api_bootstrap_fetch\",\"wif_unavailable\"),null}if(!(hs()?.accessToken&&sO())&&!o)return C(\"[Bootstrap] Skipped: no usable OAuth, WIF, or API key\"),null;try{return await TF(async()=>{let s=hs()?.accessToken,a;if(s&&sO())a={Authorization:`Bearer ${s}`,\"anthropic-beta\":kx};else if(o)a={\"x-api-key\":o};else return C(\"[Bootstrap] No auth available on retry, aborting\"),null;return n(ds().BASE_API_URL,a)})}catch(s){throw C(`[Bootstrap] Fetch failed: ${Io.isAxiosError(s)?s.response?.status??s.code:\"unknown\"}`),be(\"api_bootstrap_fetch\",\"request_failed\"),s}}",
+      "expectedMatches": 1
+    }
+  ],
+  "features": {
+    "schemaVersion": 1,
+    "default": [
+      "discovery",
+      "pricing",
+      "context",
+      "attribution",
+      "set-goal"
+    ],
+    "groups": [
+      {
+        "id": "discovery",
+        "recipeIds": [
+          "gateway-filter"
+        ],
+        "requires": []
+      },
+      {
+        "id": "pricing",
+        "recipeIds": [
+          "gateway-pricing-bootstrap"
+        ],
+        "requires": [
+          "discovery"
+        ]
+      },
+      {
+        "id": "context",
+        "recipeIds": [
+          "context-resolver",
+          "compact-resolver"
+        ],
+        "requires": []
+      },
+      {
+        "id": "attribution",
+        "recipeIds": [
+          "attribution"
+        ],
+        "requires": []
+      },
+      {
+        "id": "set-goal",
+        "recipeIds": [
+          "goal-tool-name",
+          "goal-tool"
+        ],
+        "requires": []
+      }
+    ],
+    "profiles": {
+      "none": "3197aba4442dbd5b3df42b6f35e6d7bd03b5e48ce18b7a3c5c6f5f8c28e03b7f",
+      "discovery": "0309aa0888f1badcce269ed00d3643cd6bc5b91d24edadbe8c5d4423d9603971",
+      "discovery+pricing": "09cb08fa39b3905fc8c852c5dc1f6229352dd8a3006c9e768e5cc94aabb63e7d",
+      "context": "1166d0f0af9f23dcf3c263a3a1d03a90ca2cdd6503bdf9c72deca8aff4f846a7",
+      "discovery+context": "68d28081b79e2a4df40812a6844879c84e80198c70a2042b7dd5a81fc4580c6f",
+      "discovery+pricing+context": "7af8c6f10804269e7566db2bfef4fa577bbed246c5119e7c69d08fdabc7f4520",
+      "attribution": "575145f8aa37464143242e8cb010149d3d40887dc4cf7bb9e6a34d02760e18c0",
+      "discovery+attribution": "cff6e21fdb02dc67a60407f100900d9b2f0693f9ca94959b20e9d650b0f93bb7",
+      "discovery+pricing+attribution": "ff6fcba7ccdb519ddf9ba7fc46db258b437ce8a3794febc82cceef59b7e82d77",
+      "context+attribution": "ab85770d44c4d178583e7fc85695c8b2a56a3c5f70b33efa9ab042758bcc5e37",
+      "discovery+context+attribution": "96e94fe91da193d384a4129ccb697cf8991c1f8f133fcfa15e6c8567f77484ce",
+      "discovery+pricing+context+attribution": "87cde4cc665773f313a0430ca4339891a7dab457b07d63ba261d27c7a3b310b1",
+      "set-goal": "b4df431ed2f39ac85c786f8034c4f89364eaf3e26f24b0a5a169c6c467c62780",
+      "discovery+set-goal": "ad99c6ea9fb06454f4197ec3035356f4e60107eb1be8992570eac2716ec099f7",
+      "discovery+pricing+set-goal": "e00754070e37d3ba7107c5d82d8a494a50d780c62f720db8cd00d5e2ff92f8ad",
+      "context+set-goal": "d0fae0db77ac21615d8f0b71c918328f8392f6909ff7b41c2c14d9589a45614b",
+      "discovery+context+set-goal": "919e64698c35c25e70f622bce4f700939394c9883db9d6316d9cacfe0dc8d7dc",
+      "discovery+pricing+context+set-goal": "9d12d8d9e7f3c82229bc296b93b0101688a6ff067648bbb595d9e482836f0b50",
+      "attribution+set-goal": "c2b03e0e3222b96e97b7e294da3adedbd0b0ad935f8428ba2fe995d5e1940e37",
+      "discovery+attribution+set-goal": "15f47f072bd7526356e2b611ae3d5c10c29e220c4bd25bb6863ffa5fc2a364b3",
+      "discovery+pricing+attribution+set-goal": "00570054a49bc346d891a97d71154b56b06c83b6af57498a86b96136c49144ca",
+      "context+attribution+set-goal": "9ef6e28f2b6fae031e7d92715ca7456c44695d9b4c47ebc315993d47ac0bcb79",
+      "discovery+context+attribution+set-goal": "bff5620dbae5d6793dff7bd37dac99f3e591165858ee95141bdfeb286b977bf7",
+      "discovery+pricing+context+attribution+set-goal": "947064f9ed880c83fc331d498a6b90d894673079f97073b166ec208596b9c207"
+    }
+  }
+}

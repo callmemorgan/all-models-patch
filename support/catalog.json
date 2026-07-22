@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "releaseSequence": 7,
+  "releaseSequence": 8,
   "managerVersion": "0.7.0",
   "packs": [
     {
@@ -61,6 +61,16 @@
       "patcherVersion": 10,
       "packSha256": "8d70dcffbac86292877e69e6ac2b7695905e171f2911a1ec03c1de91836f907c",
       "path": "darwin-arm64/2.1.205-p10.json",
+      "status": "active"
+    },
+    {
+      "id": "darwin-arm64/2.1.206/3197aba4442dbd5b3df42b6f35e6d7bd03b5e48ce18b7a3c5c6f5f8c28e03b7f/patcher-10",
+      "claudeVersion": "2.1.206",
+      "platform": "darwin-arm64",
+      "stockSha256": "3197aba4442dbd5b3df42b6f35e6d7bd03b5e48ce18b7a3c5c6f5f8c28e03b7f",
+      "patcherVersion": 10,
+      "packSha256": "b903c1a2d0b528412920e7b1058e3baf970d231c01c665232a1eeaa668ef59d3",
+      "path": "darwin-arm64/2.1.206-p10.json",
       "status": "active"
     }
   ]

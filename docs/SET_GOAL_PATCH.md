@@ -1,6 +1,6 @@
 # `set_goal` patch design
 
-Claude Code 2.1.201, 2.1.202, and 2.1.205 already contain the full `/goal` runtime:
+Claude Code 2.1.201, 2.1.202, 2.1.205, and 2.1.206 already contain the full `/goal` runtime:
 session-scoped Stop-hook registration, goal replacement, evaluator feedback, automatic
 continuation, status counters, automatic clearing on success, transcript
 markers, and restoration when a session resumes. The patch therefore exposes
@@ -17,7 +17,7 @@ pack makes two exact, fail-closed replacements:
 2. Replace the complete dormant `TodoWrite` definition with a smaller tool
    definition whose `call()` validates one `objective` string and delegates to
    Claude Code's existing internal goal setter (`ICt` in 2.1.201, `KCt` in
-   2.1.202, and `Fnr` in 2.1.205).
+   2.1.202, `Fnr` in 2.1.205, and `Fnr` in 2.1.206).
 
 The replacement initializes the version-specific goal module (`aJe`, `EJe`, or
 `Jkt`)

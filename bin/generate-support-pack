@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import { analyzeClaudeBinary, KNOWN_BUILDS } from "../src/claude-context-analyzer.mjs";
-import { reviewedRecipesForClaude205 } from "../src/claude-2.1.205-recipes.mjs";
+import { reviewedRecipesForClaude206 } from "../src/claude-2.1.206-recipes.mjs";
 import { reviewedGatewayPricingRecipe } from "../src/claude-gateway-pricing-recipe.mjs";
 import {
   ALL_FEATURE_IDS,
@@ -15,7 +15,7 @@ import {
 } from "../src/features.mjs";
 import { applySupportPack, fileSha256 } from "../src/support-pack.mjs";
 
-const CURRENT_REVIEWED_STABLE = "2.1.205";
+const CURRENT_REVIEWED_STABLE = "2.1.206";
 const version = process.argv[2] ?? CURRENT_REVIEWED_STABLE;
 if (version !== CURRENT_REVIEWED_STABLE) {
   throw new Error(`support generation is forward-only; current reviewed Stable is ${CURRENT_REVIEWED_STABLE}`);
@@ -27,7 +27,7 @@ const known = KNOWN_BUILDS[version];
 if (!known) throw new Error(`Claude ${version} is not a known build`);
 const analysis = analyzeClaudeBinary(source, { version });
 const stock = readFileSync(source);
-const baseRecipes = reviewedRecipesForClaude205(stock.toString("latin1"));
+const baseRecipes = reviewedRecipesForClaude206(stock.toString("latin1"));
 const recipes = Object.freeze([...baseRecipes, reviewedGatewayPricingRecipe(stock.toString("latin1"))]);
 const groups = FEATURE_GROUPS.map(({ id, recipeIds, requires }) => ({ id, recipeIds: [...recipeIds], requires: [...requires] }));
 const profiles = Object.fromEntries(enumerateFeatureSelections().map((enabled) => {

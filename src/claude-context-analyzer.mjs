@@ -43,6 +43,16 @@ export const KNOWN_BUILDS = Object.freeze({
     contextCallCount: 18,
     compactCallCount: 14,
   }),
+  "2.1.206": Object.freeze({
+    sha256: "3197aba4442dbd5b3df42b6f35e6d7bd03b5e48ce18b7a3c5c6f5f8c28e03b7f",
+    attributionOffset: 218899408,
+    gatewayFilterOffset: 213171720,
+    gatewayBootstrapOffset: 220421386,
+    contextResolverOffset: 214063969,
+    compactResolverOffset: 222910843,
+    contextCallCount: 20,
+    compactCallCount: 12,
+  }),
 });
 
 const CONTEXT_FINGERPRINT = [
@@ -150,6 +160,28 @@ const BUILD_LAYOUTS = Object.freeze({
     contextCall: "KC(",
     compactCall: "fV(",
   }),
+  "2.1.206": Object.freeze({
+    attribution: Object.freeze([
+      "function OCg(){",
+      "Co-Authored-By: ${t} <noreply@anthropic.com>",
+      "includeCoAuthoredBy===!1",
+      "function u0u(e){",
+    ]),
+    gateway: GATEWAY_FILTER_FINGERPRINT,
+    context: Object.freeze([
+      "function Jcc(e,t){if(HT(e))return 1e6;",
+      "let n=we.CLAUDE_CODE_MAX_CONTEXT_TOKENS",
+      "function Xcc(){return iD()}",
+    ]),
+    compact: Object.freeze([
+      "function HV(e,t){let r=so(e),n=WE(),o=lw(e,n);",
+      "CLAUDE_CODE_AUTO_COMPACT_WINDOW",
+      "source:\"model-default\"",
+      "return{window:o,configured:o,source:\"auto\"}",
+    ]),
+    contextCall: "lw(",
+    compactCall: "HV(",
+  }),
 });
 
 export function analyzeClaudeBinary(path, { version } = {}) {
@@ -194,11 +226,11 @@ export function inspectClaudeCandidate(path) {
   const sha256 = createHash("sha256").update(binary).digest("hex");
   const knownVersion = Object.entries(KNOWN_BUILDS).find(([, build]) => build.sha256 === sha256)?.[0] ?? null;
   const seams = {
-    attribution: inspectSeam(source, ["function rkm(){", "function lJp(){", "function hZp(){", "function h_g(){"], ["Co-Authored-By: ${t} <noreply@anthropic.com>", "includeCoAuthoredBy===!1"]),
+    attribution: inspectSeam(source, ["function rkm(){", "function lJp(){", "function hZp(){", "function h_g(){", "function OCg(){"], ["Co-Authored-By: ${t} <noreply@anthropic.com>", "includeCoAuthoredBy===!1"]),
     gatewayFilter: inspectSeam(source, [GATEWAY_FILTER_FINGERPRINT[0]], GATEWAY_FILTER_FINGERPRINT.slice(1)),
     gatewayBootstrap: inspectGatewayBootstrap(source),
-    contextResolver: inspectSeam(source, ["function Qxi(e,t){", "function _1i(e,t){", "function _Gs(e,t){", "function usc(e,t){"], ["CLAUDE_CODE_MAX_CONTEXT_TOKENS"]),
-    compactResolver: inspectSeam(source, ["function N3(e,t){", "function Rq(e,t){", "function v6(e,t){", "function fV(e,t){"], ["CLAUDE_CODE_AUTO_COMPACT_WINDOW", 'source:"model-default"']),
+    contextResolver: inspectSeam(source, ["function Qxi(e,t){", "function _1i(e,t){", "function _Gs(e,t){", "function usc(e,t){", "function Jcc(e,t){"], ["CLAUDE_CODE_MAX_CONTEXT_TOKENS"]),
+    compactResolver: inspectSeam(source, ["function N3(e,t){", "function Rq(e,t){", "function v6(e,t){", "function fV(e,t){", "function HV(e,t){"], ["CLAUDE_CODE_AUTO_COMPACT_WINDOW", 'source:"model-default"']),
   };
   if (knownVersion) {
     const verified = analyzeClaudeBinary(path, { version: knownVersion });

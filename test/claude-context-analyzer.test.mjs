@@ -46,6 +46,16 @@ test("recognizes the reviewed Claude 2.1.205 resolver layout", { skip: !existsSy
   assert.equal(result.compactCallCount, 14);
 });
 
+test("recognizes the reviewed Claude 2.1.206 resolver layout", { skip: !existsSync(`${process.env.HOME}/.local/share/claude-stable/versions/2.1.206/claude`) }, () => {
+  const path = `${process.env.HOME}/.local/share/claude-stable/versions/2.1.206/claude`;
+  const result = analyzeClaudeBinary(path, { version: "2.1.206" });
+  assert.equal(result.architecture, "arm64");
+  assert.equal(result.attributionOffset, 218899408);
+  assert.equal(result.gatewayFilterOffset, 213171720);
+  assert.equal(result.contextCallCount, 20);
+  assert.equal(result.compactCallCount, 12);
+});
+
 test("rejects a changed resolver neighborhood", { skip: !existsSync(stable) }, () => {
   const directory = mkdtempSync(join(tmpdir(), "claude-context-analyzer-"));
   const target = join(directory, "claude");
