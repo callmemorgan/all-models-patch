@@ -206,6 +206,74 @@ new `claude-all` session is started. Self-updates never prompt for or rewrite
 this preference. Because the preference is outside `FEATURE_GROUPS`, it does not
 change support-pack profiles or deterministic runtime hashes.
 
+## Raw response benchmark
+
+The installed manager can measure raw response latency and token rates for the
+live `claude-all` agent bundle:
+
+```bash
+all-models-patch benchmark
+all-models-patch benchmark --agents sonnet-5,gpt-5-6-sol --warmups 0 --runs 1
+```
+
+With no agent selection, the benchmark runs every configured agent serially
+with one warmup and three measured requests. It reports proxy-observed time to
+first token, approximate post-first-token output rate, end-to-end rate, route
+identity, retries, and fixture compliance. The slash command
+`/claude-all-swarm:benchmark` invokes the same harness and does not require
+native agent teams.
+
+Raw artifacts are written under
+`$XDG_STATE_HOME/all-models-patch/benchmarks/` (or
+`~/.local/state/all-models-patch/benchmarks/`). They contain sanitized usage and
+timing data, never generated response text, prompts, API keys, or provider
+credentials. Fixture IDs are versioned; results from different fixture versions
+are not directly comparable. Exit status `2` means the run completed with
+partial coverage.
+
+## Model Cockpit
+
+Launch the local recommendation dashboard with:
+
+```bash
+all-models-patch dashboard
+all-models-patch dashboard --no-open --port 4317
+```
+
+The manager binds only to `127.0.0.1`, creates a fresh unguessable API token
+for each launch, and opens the authenticated dashboard URL in the default
+browser. Press Ctrl-C in the launching terminal to stop it. The UI never loads
+scripts, fonts, or assets from the network.
+
+Model Cockpit joins the current named-agent and context configs with the latest
+compatible `raw-v1` benchmark for each concrete model, the sanitized
+`agents-statusline` provider-quota cache, and shipped structured recommendation
+metadata. It shows the provenance and freshness of every source. Provider OAuth
+tokens, the proxy client key, prompts, generated benchmark text, and private
+repository data never enter the dashboard payload.
+
+When `agents-statusline` is installed, the initial dashboard load and explicit
+Refresh action ask its credential-owning background helper for a fresh quota
+snapshot, throttled to once per minute. If the helper or proxy is unavailable,
+the last sanitized cache remains visible with its original timestamp.
+
+The Recommendation view ranks the live `Agent()` roster using adjustable
+capability, personal taste, effective speed, public-rating, reliability, quota,
+context, coachability, and efficiency weights. Effective speed estimates time
+to produce the requested output from TTFT and post-first-token throughput, then
+uses a logarithmic utility curve so unusually high token rates do not dominate
+the result. Missing evidence is confidence-shrunk to a neutral score rather
+than treated as failure, and a context requirement larger than a model's window
+is a hard exclusion.
+
+Built-in task presets cover balanced work, deep builds, taste and polish, fast
+reconnaissance, and quota conservation. User presets are stored separately at
+`~/.config/all-models-patch/dashboard-presets.json` with mode `0600`; they do
+not modify the agent bundle or shipped evidence. Public ratings remain visibly
+unknown until a sourced numeric observation is added to
+`config/model-recommendations.json`—rank-only prose is never converted into an
+invented score.
+
 ## Stable updates
 
 Anthropic's Stable channel and this project's reviewed support catalog are two
@@ -258,6 +326,7 @@ all-models-patch check
 all-models-patch update
 all-models-patch features
 all-models-patch configure
+all-models-patch dashboard
 all-models-patch provision-model-configs
 all-models-patch doctor
 all-models-patch rollback 2.1.197
@@ -274,6 +343,7 @@ The signed portfolio currently contains exact Apple Silicon support for:
 | `2.1.201` | `a0852d76afc47b30f5cb0b7625ec9a7714cb189f2eeef6c28c77e2be954fb7fd` |
 | `2.1.202` | `7414f707861e2fe5afef33a466f888a8d2170e5028f5e9d2858f1d3ef45ffca5` |
 | `2.1.205` | `33e28624c5ae84f2bd7d2d8761e5d2e77997ba965cb11b6448de6b6e2c566f9c` |
+| `2.1.206` | `3197aba4442dbd5b3df42b6f35e6d7bd03b5e48ce18b7a3c5c6f5f8c28e03b7f` |
 
 Support is keyed by version, platform, and binary hash. A republished binary
 with the same version but a different hash is unsupported until reviewed. The

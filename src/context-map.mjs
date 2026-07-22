@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 export const CONTEXT_MAP_SCHEMA_VERSION = 1;
 const MIN_TOKENS = 100_000;
-const MAX_TOKENS = 1_048_576;
+const MAX_TOKENS = 2_000_000;
 const ACTIVE_STATUS = "route-validated";
 
 export function loadContextEnvironment(path) {

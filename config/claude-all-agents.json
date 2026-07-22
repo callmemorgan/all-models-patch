@@ -14,6 +14,21 @@
     "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
     "model": "claude-sonnet-5"
   },
+  "opus-4-7": {
+    "description": "Deep implementation and rigorous review with Claude Opus 4.7.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "claude-opus-4-7"
+  },
+  "sonnet-4-6": {
+    "description": "Focused implementation and review with Claude Sonnet 4.6.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "claude-sonnet-4-6"
+  },
+  "haiku-4-5": {
+    "description": "Fast bounded implementation and analysis with Claude Haiku 4.5.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "claude-haiku-4-5-20251001"
+  },
   "gpt-5-6-sol": {
     "description": "Complex implementation and cross-provider review with GPT-5.6 Sol.",
     "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
@@ -29,10 +44,45 @@
     "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
     "model": "gpt-5.6-luna"
   },
+  "gpt-5-5": {
+    "description": "Frontier coding, research, and complex engineering with GPT-5.5.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "gpt-5.5"
+  },
+  "gpt-5-4": {
+    "description": "General coding and engineering with GPT-5.4.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "gpt-5.4"
+  },
+  "gpt-5-4-mini": {
+    "description": "Fast efficient coding and bounded analysis with GPT-5.4 Mini.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "gpt-5.4-mini"
+  },
+  "gpt-5-3-codex-spark": {
+    "description": "Ultra-fast coding iterations with GPT-5.3 Codex Spark.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "gpt-5.3-codex-spark"
+  },
   "grok-4-5": {
     "description": "Large-context analysis, implementation, and independent review with Grok 4.5.",
     "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
     "model": "grok-4.5"
+  },
+  "grok-4-3": {
+    "description": "Large-context coding and independent review with Grok 4.3.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "grok-4.3"
+  },
+  "grok-4-20-reasoning": {
+    "description": "Two-million-token reasoning and engineering with Grok 4.20.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "grok-4.20-0309-reasoning"
+  },
+  "grok-4-20-non-reasoning": {
+    "description": "Two-million-token fast analysis with Grok 4.20 Non-Reasoning.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "grok-4.20-0309-non-reasoning"
   },
   "kimi-k3": {
     "description": "Long-horizon coding, knowledge work, and deep reasoning with Kimi K3.",
@@ -43,6 +93,16 @@
     "description": "Iterative coding and review loops with Kimi K2.7 Code.",
     "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
     "model": "kimi-k2.7-code"
+  },
+  "kimi-k2-6": {
+    "description": "Long-horizon agentic coding and reasoning with Kimi K2.6.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "kimi-k2.6"
+  },
+  "kimi-k2-7-code-fast": {
+    "description": "Faster iterative coding and review loops with Kimi K2.7 Code Highspeed.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "kimi-k2.7-code-highspeed"
   },
   "gemini-3-5-flash": {
     "description": "Large-context reconnaissance and mechanical analysis with Gemini 3.5 Flash.",
@@ -63,5 +123,30 @@
     "description": "Long-horizon engineering and project-scale analysis with GLM-5.2.",
     "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
     "model": "glm-5.2"
+  },
+  "opus-4-6-thinking": {
+    "description": "Antigravity overflow for deep implementation and review with Claude Opus 4.6 Thinking.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "claude-opus-4-6-thinking"
+  },
+  "gpt-oss-120b": {
+    "description": "Open-model coding and independent review with GPT-OSS 120B Medium.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "gpt-oss-120b-medium"
+  },
+  "gemini-3-5-flash-low": {
+    "description": "Large-context analysis with the medium-speed Gemini 3.5 Flash route.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "gemini-3.5-flash-low"
+  },
+  "gemini-3-5-flash-extra-low": {
+    "description": "Large-context high-speed analysis with the low-effort Gemini 3.5 Flash route.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "gemini-3.5-flash-extra-low"
+  },
+  "grok-build-0-1": {
+    "description": "Fast agentic software-engineering work with Grok Build 0.1.",
+    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
+    "model": "grok-build-0.1"
   }
 }

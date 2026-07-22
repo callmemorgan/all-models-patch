@@ -62,15 +62,20 @@ the behavior they originally shipped.
 ## Shipped model configuration
 
 `config/claude-all-agents.json` and `config/claude-all-contexts.json` are the
-first-install defaults included in every release. Keep them credential-free and
-usable with the current companion gateway model IDs. Every named agent must map
-to an active context profile, and context limits must come from a provider or
-route source that can be rechecked.
+first-install defaults included in every release. `config/model-recommendations.json`
+holds credential-free provider mappings and sourced recommendation evidence for
+the same exact roster. Keep all three usable with the current companion gateway
+model IDs. Every named agent must map to an active context and recommendation
+profile, and context limits must come from a provider or route source that can
+be rechecked.
 
 The installer provisions only missing files under `~/.cli-proxy-api` with mode
 `0600`; upgrades must never overwrite, merge, or normalize an existing user
-file. When the default roster changes, update both configs together, run the
-model-config tests, and describe only the resulting current setup in user docs.
+file. When the default roster changes, update both configs together, update the
+recommendation metadata in the same change, run the model-config tests, and
+describe only the resulting current setup in user docs. Missing recommendation
+evidence stays explicitly unrated; never derive a numeric public rating from
+rank-only prose or an untraceable comparison.
 
 Selectable packs default to `All`. Generation must enumerate every dependency-
 valid profile (currently 24), reproduce each profile from stock, and verify

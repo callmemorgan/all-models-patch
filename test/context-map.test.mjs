@@ -15,6 +15,7 @@ test("exports only route-validated safe profiles", () => {
   const path = fixture({ schemaVersion: 1, models: {
     "gpt-test": { contextTokens: 350000, compactAtTokens: 300000, status: "route-validated" },
     "claude-fable-5": { contextTokens: 1000000, compactAtTokens: 660000, status: "route-validated" },
+    "grok-4.20": { contextTokens: 2000000, compactAtTokens: 1800000, status: "route-validated" },
     guessed: { contextTokens: 900000, compactAtTokens: 800000, status: "unverified" },
   }});
   assert.deepEqual(loadContextEnvironment(path).environment, [
@@ -22,16 +23,19 @@ test("exports only route-validated safe profiles", () => {
     ["CLAUDE_ALL_COMPACT_gpt-test", "300000"],
     ["CLAUDE_ALL_CONTEXT_claude-fable-5", "1000000"],
     ["CLAUDE_ALL_COMPACT_claude-fable-5", "660000"],
+    ["CLAUDE_ALL_CONTEXT_grok-4.20", "2000000"],
+    ["CLAUDE_ALL_COMPACT_grok-4.20", "1800000"],
   ]);
 });
 
 test("ignores unsafe thresholds", () => {
   const path = fixture({ schemaVersion: 1, models: {
     unsafe: { contextTokens: 300000, compactAtTokens: 300000, status: "route-validated" },
+    oversized: { contextTokens: 2000001, compactAtTokens: 1800000, status: "route-validated" },
   }});
   const result = loadContextEnvironment(path);
   assert.deepEqual(result.environment, []);
-  assert.equal(result.warnings.length, 1);
+  assert.equal(result.warnings.length, 2);
 });
 
 test("rejects model IDs containing line breaks or control characters", () => {

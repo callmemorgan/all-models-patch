@@ -4,7 +4,9 @@ import { dirname, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { agentTeamsEnvironment, effectiveAgentTeamsConfig, readAgentTeamsConfig, writeAgentTeamsConfig } from "./agent-teams.mjs";
+import { parseBenchmarkOptions, runBenchmark } from "./benchmark.mjs";
 import { loadContextEnvironment } from "./context-map.mjs";
+import { parseDashboardOptions, runDashboard } from "./dashboard.mjs";
 import { ALL_FEATURE_IDS, FEATURE_GROUPS, effectiveFeatureConfig, featureProfileKey, featureReport, readFeatureConfig, writeFeatureConfig } from "./features.mjs";
 import { maybeSelfUpdate } from "./self-update.mjs";
 import { provisionModelConfigs, validateShippedModelConfigs } from "./model-configs.mjs";
@@ -108,6 +110,20 @@ try {
     };
     if (process.platform !== "darwin" || process.arch !== "arm64") throw new Error("only Apple Silicon macOS is supported");
     process.stdout.write(`${json ? JSON.stringify(report, null, 2) : Object.entries(report).map(([key, value]) => `${key}: ${value}`).join("\n")}\n`);
+  } else if (command === "benchmark") {
+    const benchmarkOptions = parseBenchmarkOptions(args.slice(1), paths);
+    const result = await runBenchmark({
+      ...benchmarkOptions,
+      home: paths.home,
+      localBin: paths.localBin,
+      stateDirectory: paths.stateDirectory,
+    });
+    process.stdout.write(`${benchmarkOptions.json ? JSON.stringify(result.summary, null, 2) : result.markdown}\n`);
+    if (result.exitCode !== 0) process.exitCode = result.exitCode;
+  } else if (command === "dashboard") {
+    const dashboardOptions = parseDashboardOptions(args.slice(1));
+    const version = loadSupportCatalog(toolRoot).catalog.managerVersion;
+    await runDashboard({ toolRoot, paths, version, ...dashboardOptions });
   } else if (command === "runtime-path") {
     process.stdout.write(resolveVerifiedRuntime({ toolRoot, paths }));
   } else if (command === "agent-teams-env") {

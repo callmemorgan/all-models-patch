@@ -33,6 +33,18 @@ Gateway credentials remain outside the release. Do not include `client-key` or
 provider credential JSON files in an issue, diagnostic bundle, release archive,
 or model-config contribution.
 
+## Local dashboard
+
+Model Cockpit binds only to the IPv4 loopback interface and authenticates every
+data request with a fresh per-launch token. Its page uses a restrictive content
+security policy and loads no remote resources. The dashboard reads only
+sanitized benchmark summaries, model metadata, and the sanitized subscription
+usage cache; it never reads provider OAuth files or the proxy client key.
+
+Saved weighting presets are created under the user's all-models-patch config
+directory with mode `0600`. Do not add remote binding, permissive CORS, remote
+scripts, or credential-bearing diagnostics to the dashboard.
+
 ## Reporting vulnerabilities
 
 Please report vulnerabilities privately through GitHub's private vulnerability

@@ -36,7 +36,10 @@ export function provisionModelConfigs({ toolRoot, home = process.env.HOME } = {}
 export function validateShippedModelConfigs(toolRoot) {
   const agentsPath = join(toolRoot, "config", "claude-all-agents.json");
   const contextsPath = join(toolRoot, "config", "claude-all-contexts.json");
-  if (!existsSync(agentsPath) || !existsSync(contextsPath)) throw new Error("shipped model configs are incomplete");
+  const recommendationsPath = join(toolRoot, "config", "model-recommendations.json");
+  if (!existsSync(agentsPath) || !existsSync(contextsPath) || !existsSync(recommendationsPath)) {
+    throw new Error("shipped model configs are incomplete");
+  }
 
   const agents = JSON.parse(readFileSync(agentsPath, "utf8"));
   if (!isPlainObject(agents) || Object.keys(agents).length === 0) throw new Error("shipped agent bundle must be a non-empty object");
@@ -54,7 +57,29 @@ export function validateShippedModelConfigs(toolRoot) {
     if (!activeModels.has(agent.model)) throw new Error(`shipped agent model has no active context profile: ${agent.model}`);
   }
   if (contexts.models["kimi-k3"]?.contextTokens !== 1_000_000) throw new Error("shipped Kimi K3 context profile must use its 1M window");
-  return { agentsPath, contextsPath };
+
+  const recommendations = JSON.parse(readFileSync(recommendationsPath, "utf8"));
+  if (recommendations?.schemaVersion !== 1 || !isPlainObject(recommendations.profiles)) {
+    throw new Error("shipped recommendation metadata is invalid");
+  }
+  const recommendationNames = Object.keys(recommendations.profiles).sort();
+  const agentNames = Object.keys(agents).sort();
+  if (JSON.stringify(recommendationNames) !== JSON.stringify(agentNames)) {
+    throw new Error("shipped recommendation metadata must match the agent roster exactly");
+  }
+  for (const [name, profile] of Object.entries(recommendations.profiles)) {
+    if (!isPlainObject(profile) || !Array.isArray(profile.providers) || !isPlainObject(profile.ratings)) {
+      throw new Error(`invalid shipped recommendation profile: ${name}`);
+    }
+    for (const dimension of ["capability", "taste", "publicRating", "coachability", "efficiency"]) {
+      const rating = profile.ratings[dimension];
+      const validValue = rating?.value === null || (Number.isFinite(rating?.value) && rating.value >= 0 && rating.value <= 100);
+      if (!validValue || !Number.isFinite(rating?.confidence) || rating.confidence < 0 || rating.confidence > 1 || typeof rating.source !== "string") {
+        throw new Error(`invalid shipped ${dimension} rating: ${name}`);
+      }
+    }
+  }
+  return { agentsPath, contextsPath, recommendationsPath };
 }
 
 function isPlainObject(value) {

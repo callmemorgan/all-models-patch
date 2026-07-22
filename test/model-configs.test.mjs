@@ -12,6 +12,54 @@ test("shipped agent and context configs form a valid current roster", () => {
   assert.doesNotThrow(() => validateShippedModelConfigs(toolRoot));
 });
 
+test("ships structured recommendation metadata for every agent profile", () => {
+  const agents = JSON.parse(readFileSync(join(toolRoot, "config", "claude-all-agents.json"), "utf8"));
+  const recommendations = JSON.parse(readFileSync(join(toolRoot, "config", "model-recommendations.json"), "utf8"));
+  assert.deepEqual(Object.keys(recommendations.profiles).sort(), Object.keys(agents).sort());
+  assert.deepEqual(recommendations.profiles["fable-5"].ratings.taste, {
+    value: 100,
+    confidence: 0.9,
+    source: "personal-agent-guidance",
+  });
+  assert.deepEqual(recommendations.profiles["gpt-5-3-codex-spark"].ratings.publicRating, {
+    value: null,
+    confidence: 0,
+    source: "not-rated",
+  });
+});
+
+test("ships the expanded benchmark comparison routes", () => {
+  const agents = JSON.parse(readFileSync(join(toolRoot, "config", "claude-all-agents.json"), "utf8"));
+  const contexts = JSON.parse(readFileSync(join(toolRoot, "config", "claude-all-contexts.json"), "utf8"));
+
+  const expectedAgents = {
+    "gpt-5-5": "gpt-5.5",
+    "gpt-5-4": "gpt-5.4",
+    "gpt-5-4-mini": "gpt-5.4-mini",
+    "gpt-5-3-codex-spark": "gpt-5.3-codex-spark",
+    "opus-4-7": "claude-opus-4-7",
+    "sonnet-4-6": "claude-sonnet-4-6",
+    "haiku-4-5": "claude-haiku-4-5-20251001",
+    "grok-4-3": "grok-4.3",
+    "grok-4-20-reasoning": "grok-4.20-0309-reasoning",
+    "grok-4-20-non-reasoning": "grok-4.20-0309-non-reasoning",
+    "kimi-k2-6": "kimi-k2.6",
+    "kimi-k2-7-code": "kimi-k2.7-code",
+    "kimi-k2-7-code-fast": "kimi-k2.7-code-highspeed",
+    "opus-4-6-thinking": "claude-opus-4-6-thinking",
+    "gpt-oss-120b": "gpt-oss-120b-medium",
+    "gemini-3-5-flash-low": "gemini-3.5-flash-low",
+    "gemini-3-5-flash-extra-low": "gemini-3.5-flash-extra-low",
+    "grok-build-0-1": "grok-build-0.1",
+  };
+  for (const [name, model] of Object.entries(expectedAgents)) {
+    assert.equal(agents[name].model, model);
+    assert.ok(contexts.models[model]);
+  }
+  assert.deepEqual(contexts.models["kimi-k2.7-code-highspeed"], contexts.models["kimi-k2.7-code"]);
+  assert.equal(contexts.models["claude-opus-4-6-thinking"].contextTokens, 200_000);
+});
+
 test("provisions missing model configs with private permissions", () => {
   const home = mkdtempSync(join(tmpdir(), "all-models-patch-configs-"));
   const result = provisionModelConfigs({ toolRoot, home });

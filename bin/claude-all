@@ -37,7 +37,7 @@ if [[ ! -x "$manager" ]]; then
   exit 1
 fi
 
-if [[ ! -r "$swarm_plugin/.claude-plugin/plugin.json" || ! -r "$swarm_plugin/commands/swarm.md" ]]; then
+if [[ ! -r "$swarm_plugin/.claude-plugin/plugin.json" || ! -r "$swarm_plugin/commands/swarm.md" || ! -r "$swarm_plugin/commands/benchmark.md" ]]; then
   print -u2 "claude-all: swarm plugin is missing: $swarm_plugin"
   exit 1
 fi
