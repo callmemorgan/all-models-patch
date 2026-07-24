@@ -240,7 +240,7 @@ test("summary uses nearest-rank distributions and truthful partial exit codes", 
   assert.match(markdown, /ttfatMS is client-wall-clock based/);
 });
 
-test("aa-long-v1 minOutputTokens honors 400 threshold", () => {
+test("aa-long-v1 minOutputTokens honors 250 threshold", () => {
   const fixture = getFixture("aa-long-v1");
   const valid = buildSample({
     runID: ids[0], benchmarkID: ids[1], agentName: "alpha", configuredModel: "alias", phase: "measured", round: 1, ordinal: 1,
@@ -256,7 +256,7 @@ test("aa-long-v1 minOutputTokens honors 400 threshold", () => {
   const short = buildSample({
     runID: ids[0], benchmarkID: ids[2], agentName: "alpha", configuredModel: "alias", phase: "measured", round: 1, ordinal: 1,
     processResult: processResult({ visibleLines: 48, formatOK: true }),
-    usage: usageEnvelope(ids[2], 2, 350),
+    usage: usageEnvelope(ids[2], 2, 200),
     timestamp: new Date("2026-07-20T12:00:00Z"),
     fixture,
   });

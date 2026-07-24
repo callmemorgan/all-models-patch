@@ -50,7 +50,11 @@ export const FIXTURES = Object.freeze({
     linePadWidth: 3,
   }),
   "aa-long-v1": freezeFixture("aa-long-v1", buildAaLongPrompt(), {
-    minOutputTokens: 400,
+    // Threshold must sit below every provider tokenizer's count of the exact
+    // 48-line calibration text (OpenAI ~291, Kimi/GLM ~325, Anthropic ~407);
+    // the exact-format check is the real correctness gate, this only catches
+    // truncated or empty telemetry.
+    minOutputTokens: 250,
     expectedLines: 48,
     linePadWidth: 2,
   }),
