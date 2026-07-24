@@ -8,6 +8,7 @@ import { agentTeamsEnvironment, effectiveAgentTeamsConfig, readAgentTeamsConfig,
 import { parseBenchmarkOptions, runBenchmark } from "./benchmark.mjs";
 import { loadContextEnvironment } from "./context-map.mjs";
 import { parseDashboardOptions, runDashboard } from "./dashboard.mjs";
+import { formatRecommendSummary, parseRecommendOptions, runRecommend } from "./recommend-cli.mjs";
 import { ALL_FEATURE_IDS, FEATURE_GROUPS, effectiveFeatureConfig, featureProfileKey, featureReport, readFeatureConfig, writeFeatureConfig } from "./features.mjs";
 import { maybeSelfUpdate } from "./self-update.mjs";
 import { provisionModelConfigs, validateShippedModelConfigs } from "./model-configs.mjs";
@@ -125,6 +126,11 @@ try {
     const aaOptions = parseAaIngestOptions(args.slice(1));
     const result = runAaIngest({ toolRoot, ...aaOptions });
     process.stdout.write(formatAaIngestSummary(result));
+  } else if (command === "recommend") {
+    const recommendOptions = parseRecommendOptions(args.slice(1));
+    const result = runRecommend({ toolRoot, paths, options: recommendOptions });
+    if (recommendOptions.json) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    else process.stdout.write(formatRecommendSummary(result, recommendOptions));
   } else if (command === "dashboard") {
     const dashboardOptions = parseDashboardOptions(args.slice(1));
     const version = loadSupportCatalog(toolRoot).catalog.managerVersion;

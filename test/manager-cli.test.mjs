@@ -175,3 +175,14 @@ test("agent-teams-env reports enabled, disabled, unset, and invalid states", () 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /all-models-patch:/);
 });
+
+test("recommend --json returns a scored recommendations payload", () => {
+  const state = fixture();
+  const result = run(state, ["recommend", "--json"]);
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  assert.ok(Array.isArray(payload.recommendations));
+  assert.ok(payload.recommendations.length > 0);
+  assert.equal(typeof payload.recommendations[0].score, "number");
+  assert.ok(payload.presets.some((preset) => preset.id === "balanced"));
+});

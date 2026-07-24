@@ -346,7 +346,16 @@ export function loadLatestBenchmarks(root, agents) {
   const latest = new Map();
   if (!existsSync(root)) return latest;
   for (const entry of readdirSync(root, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
+    if (!entry.isDirectory()) {
+      const path = join(root, entry.name);
+      let stat;
+      try {
+        stat = statSync(path);
+      } catch {
+        continue;
+      }
+      if (!stat.isDirectory()) continue;
+    }
     const path = join(root, entry.name, "summary.json");
     if (!existsSync(path)) continue;
     let summary;
@@ -445,6 +454,7 @@ export function readDashboardPresets(paths) {
       ...preset?.settings,
       weights: migrateLegacyWeights(preset?.settings?.weights),
     }),
+    whenToUse: preset?.whenToUse ?? undefined,
   }));
 }
 
@@ -637,27 +647,51 @@ function ratingDimension(rating) {
 }
 
 function builtInPresets() {
-  const preset = (id, name, weights) => ({
+  const preset = (id, name, weights, whenToUse, cues) => ({
     id,
     name,
     builtin: true,
     settings: { weights },
+    whenToUse,
+    cues,
   });
   return [
-    preset("balanced", "Balanced", { ...DEFAULT_WEIGHTS }),
+    preset("balanced", "Balanced", { ...DEFAULT_WEIGHTS }, "Default blend when no mode is stated.", ["do a balanced job", "just route sensibly"]),
     preset("deep-build", "Deep build", {
       aaCoding: 30, aaAgentic: 6, aaIntelligence: 4, taste: 20, speed: 5, reliability: 15, quota: 5, context: 5, coachability: 5, efficiency: 5,
-    }),
+    }, "Hard implementation or debugging that must be done right; capability outweighs speed and cost.", ["do it right", "this is the hard part", "deep work"]),
     preset("taste-polish", "Taste & polish", {
       aaCoding: 15, aaAgentic: 8, aaIntelligence: 7, taste: 35, speed: 5, reliability: 10, quota: 5, context: 0, coachability: 5, efficiency: 10,
-    }),
+    }, "UI, copy, or API-surface polish where taste and coachability lead.", ["make it tasteful", "polish the UI", "make it pretty"]),
     preset("fast-recon", "Fast recon", {
       aaCoding: 10, aaAgentic: 3, aaIntelligence: 2, taste: 5, speed: 35, reliability: 15, quota: 10, context: 15, coachability: 0, efficiency: 5,
-    }),
+    }, "High-volume sweeps, extraction, and recon where speed and context beat capability.", ["get something out fast", "quick pass", "just scan it"]),
     preset("quota-saver", "Quota saver", {
       aaCoding: 15, aaAgentic: 3, aaIntelligence: 2, taste: 10, speed: 10, reliability: 10, quota: 30, context: 5, coachability: 5, efficiency: 10,
-    }),
+    }, "Cost-sensitive work when premium windows are hot; efficiency and quota lead.", ["be efficient", "keep it cheap", "save quota"]),
   ];
+}
+
+export function resolvePresetId(input, presets) {
+  if (typeof input !== "string" || !input) return null;
+  const normalized = input.trim().toLowerCase();
+  if (!normalized) return null;
+  const aliases = {
+    fast: "fast-recon",
+    tasteful: "taste-polish",
+    taste: "taste-polish",
+    efficient: "quota-saver",
+    cheap: "quota-saver",
+    deep: "deep-build",
+  };
+  const targetId = aliases[normalized] ?? normalized;
+  for (const preset of presets ?? []) {
+    if (preset.id?.toLowerCase() === targetId) return preset;
+  }
+  for (const preset of presets ?? []) {
+    if (preset.name?.toLowerCase() === targetId) return preset;
+  }
+  return null;
 }
 
 function readPreferredJSON(livePath, shippedPath, label) {

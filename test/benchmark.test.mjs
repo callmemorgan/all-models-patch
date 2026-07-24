@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -597,6 +597,23 @@ test("loadLatestBenchmarks prefers aa-story-v1 and speedDimension ranks it on ch
   // 400 chars/s at 4 chars/token = 100 tok/s equivalent, not the raw 50 tok/s.
   const tokenEquivalent = speedUtility({ ttftMS: 5000, postFirstTokenTPS: 100 });
   assert.equal(speed.value, tokenEquivalent.value);
+});
+
+test("loadLatestBenchmarks follows symlinks that resolve to directories", () => {
+  const root = mkdtempSync(join(tmpdir(), "bench-symlink-"));
+  const external = mkdtempSync(join(tmpdir(), "bench-external-"));
+  writeBenchmarkSummary(external, {
+    runID: "symlinked-run",
+    fixtureId: "raw-v1",
+    completedAt: "2026-07-20T12:00:00Z",
+    model: "model-a",
+    speed: 123,
+    ttfatMS: null,
+  });
+  symlinkSync(external, join(root, "symlinked"));
+  const benchmarks = loadLatestBenchmarks(root, { alpha: { model: "model-a" } });
+  assert.equal(benchmarks.get("alpha").runID, "symlinked-run");
+  assert.equal(benchmarks.get("alpha").postFirstTokenTPS.p50, 123);
 });
 
 function benchmarkHome() {
