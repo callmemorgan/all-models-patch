@@ -18,7 +18,49 @@ NNN benchmark response calibration token
 Replace NNN with the integer zero-padded to three digits, beginning with 001 and ending with 256.
 Do not use a code fence, heading, introduction, conclusion, tool, or commentary.`;
 
-const fixtureHash = createHash("sha256").update(BENCHMARK_PROMPT).digest("hex");
+function buildAaLongPrompt() {
+  const paragraphs = Array.from({ length: 250 }, (_, index) => {
+    const n = String(index + 1).padStart(3, "0");
+    return `Paragraph ${n}: This is deterministic filler text for Artificial Analysis style long-context calibration. The content is fixed so hashes stay stable across builds and machines. Token packing line ${n} repeats controlled wording for density.`;
+  }).join("\n\n");
+  return `${paragraphs}
+
+After the preceding context, produce exactly 48 lines and nothing else.
+For each integer from 1 through 48, output one line in ascending order using this exact format:
+NN benchmark response calibration token
+Replace NN with the integer zero-padded to two digits, beginning with 01 and ending with 48.
+Do not use a code fence, heading, introduction, conclusion, tool, or commentary.`;
+}
+
+function freezeFixture(id, prompt, { minOutputTokens, expectedLines, linePadWidth }) {
+  return Object.freeze({
+    id,
+    prompt,
+    minOutputTokens,
+    expectedLines,
+    linePadWidth,
+    sha256: createHash("sha256").update(prompt).digest("hex"),
+  });
+}
+
+export const FIXTURES = Object.freeze({
+  "raw-v1": freezeFixture("raw-v1", BENCHMARK_PROMPT, {
+    minOutputTokens: 512,
+    expectedLines: 256,
+    linePadWidth: 3,
+  }),
+  "aa-long-v1": freezeFixture("aa-long-v1", buildAaLongPrompt(), {
+    minOutputTokens: 400,
+    expectedLines: 48,
+    linePadWidth: 2,
+  }),
+});
+
+export function getFixture(fixtureId = BENCHMARK_FIXTURE_ID) {
+  const fixture = FIXTURES[fixtureId];
+  if (!fixture) throw new Error(`unknown benchmark fixture: ${fixtureId}`);
+  return fixture;
+}
 
 export function parseBenchmarkOptions(argv, paths) {
   const options = {
@@ -28,8 +70,10 @@ export function parseBenchmarkOptions(argv, paths) {
     seed: null,
     output: null,
     json: false,
+    fixture: BENCHMARK_FIXTURE_ID,
+    compareAa: null,
   };
-  const valueOptions = new Set(["--agents", "--warmups", "--runs", "--seed", "--output"]);
+  const valueOptions = new Set(["--agents", "--warmups", "--runs", "--seed", "--output", "--fixture", "--compare-aa"]);
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--json") {
@@ -52,6 +96,11 @@ export function parseBenchmarkOptions(argv, paths) {
       options.seed = value;
     } else if (arg === "--output") {
       options.output = resolve(value);
+    } else if (arg === "--fixture") {
+      if (!Object.hasOwn(FIXTURES, value)) throw new Error(`unknown benchmark fixture: ${value}`);
+      options.fixture = value;
+    } else if (arg === "--compare-aa") {
+      options.compareAa = resolve(value);
     }
   }
   options.stateDirectory = paths.stateDirectory;
@@ -71,6 +120,7 @@ export async function runBenchmark(options, dependencies = {}) {
   };
   if (typeof deps.fetch !== "function") throw new Error("benchmark requires fetch support");
 
+  const fixture = getFixture(options.fixture ?? BENCHMARK_FIXTURE_ID);
   const agentsPath = join(options.home, ".cli-proxy-api", "claude-all-agents.json");
   const keyPath = join(options.home, ".cli-proxy-api", "client-key");
   const launcher = options.launcher ?? join(options.localBin, "claude-all");
@@ -123,7 +173,8 @@ export async function runBenchmark(options, dependencies = {}) {
             cwd: temporaryDirectory,
             agent: agentName,
             benchmarkID,
-            prompt: BENCHMARK_PROMPT,
+            prompt: fixture.prompt,
+            fixtureId: fixture.id,
             environment: process.env,
             clock: deps.clock,
             onChild: (child) => { activeChild = child; },
@@ -159,6 +210,7 @@ export async function runBenchmark(options, dependencies = {}) {
           processResult,
           usage,
           timestamp: deps.now(),
+          fixture,
         });
         samples.push(sample);
         try {
@@ -180,6 +232,11 @@ export async function runBenchmark(options, dependencies = {}) {
   }
   if (!aborted && streamFailure) aborted = `could not write ${samplesPath}: ${streamFailure.message}`;
 
+  let compareAa = null;
+  if (options.compareAa) {
+    compareAa = loadAaCompareExtract(options.compareAa, deps.readFile);
+  }
+
   const summary = summarizeRun({
     runID,
     seed,
@@ -191,6 +248,8 @@ export async function runBenchmark(options, dependencies = {}) {
     samples,
     interrupted,
     aborted,
+    fixture,
+    compareAa,
   });
   writeFileSync(join(outputDirectory, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`, { mode: 0o600 });
   const markdown = formatBenchmarkMarkdown(summary);
@@ -240,14 +299,14 @@ export function buildRounds(agentNames, warmups, runs, seed) {
   return rounds;
 }
 
-export async function runClaudeProcess({ launcher, cwd, agent, benchmarkID, prompt, environment, clock, onChild }) {
+export async function runClaudeProcess({ launcher, cwd, agent, benchmarkID, prompt, environment, clock, onChild, fixtureId = BENCHMARK_FIXTURE_ID }) {
   const args = buildClaudeArguments(agent, prompt);
   const env = {
     ...environment,
     ANTHROPIC_CUSTOM_HEADERS: appendBenchmarkHeader(environment.ANTHROPIC_CUSTOM_HEADERS, benchmarkID),
   };
   const started = clock();
-  const stream = createStreamAccumulator(started);
+  const stream = createStreamAccumulator(started, fixtureId);
   let stderr = "";
   const child = spawn(launcher, args, { cwd, env, stdio: ["ignore", "pipe", "pipe"] });
   onChild?.(child);
@@ -286,7 +345,7 @@ export function buildClaudeArguments(agent, prompt) {
   ];
 }
 
-export function createStreamAccumulator(startedAt) {
+export function createStreamAccumulator(startedAt, fixtureId = BENCHMARK_FIXTURE_ID) {
   let buffer = "";
   let text = "";
   let firstContentMS = null;
@@ -295,6 +354,7 @@ export function createStreamAccumulator(startedAt) {
   let finalModel = "";
   let streamError = "";
   let parseErrors = 0;
+  let sawThinking = false;
 
   function processLine(line, timestamp) {
     if (!line.trim()) return;
@@ -304,6 +364,12 @@ export function createStreamAccumulator(startedAt) {
     } catch {
       parseErrors += 1;
       return;
+    }
+    if (event.type === "stream_event" && event.event?.type === "content_block_start" && event.event.content_block?.type === "thinking") {
+      sawThinking = true;
+    }
+    if (event.type === "stream_event" && event.event?.type === "content_block_delta" && event.event.delta?.type === "thinking_delta") {
+      sawThinking = true;
     }
     if (event.type === "stream_event" && event.event?.type === "content_block_delta" && event.event.delta?.type === "text_delta") {
       const delta = String(event.event.delta.text ?? "");
@@ -347,7 +413,7 @@ export function createStreamAccumulator(startedAt) {
       }
     },
     result() {
-      const validation = validateFixtureOutput(text);
+      const validation = validateFixtureOutput(text, fixtureId);
       return {
         firstContentMS,
         lastContentMS,
@@ -358,23 +424,25 @@ export function createStreamAccumulator(startedAt) {
         finalModel,
         streamError,
         parseErrors,
+        sawThinking,
       };
     },
   };
 }
 
-export function validateFixtureOutput(text) {
+export function validateFixtureOutput(text, fixtureId = BENCHMARK_FIXTURE_ID) {
+  const fixture = getFixture(fixtureId);
   const normalized = text.endsWith("\n") ? text.slice(0, -1) : text;
   const lines = normalized ? normalized.split("\n") : [];
-  if (lines.length !== 256) return { ok: false, lineCount: lines.length };
+  if (lines.length !== fixture.expectedLines) return { ok: false, lineCount: lines.length };
   for (let index = 0; index < lines.length; index += 1) {
-    const expected = `${String(index + 1).padStart(3, "0")} benchmark response calibration token`;
+    const expected = `${String(index + 1).padStart(fixture.linePadWidth, "0")} benchmark response calibration token`;
     if (lines[index] !== expected) return { ok: false, lineCount: lines.length };
   }
   return { ok: true, lineCount: lines.length };
 }
 
-export function buildSample({ runID, benchmarkID, agentName, configuredModel, phase, round, ordinal, processResult, usage, timestamp }) {
+export function buildSample({ runID, benchmarkID, agentName, configuredModel, phase, round, ordinal, processResult, usage, timestamp, fixture = FIXTURES[BENCHMARK_FIXTURE_ID] }) {
   const generated = usage.records.filter((record) => record.generate !== false);
   const successful = generated.filter((record) => !record.failed && Number(record.tokens?.output_tokens) > 0);
   const selected = [...successful].sort((left, right) => Number(right.tokens?.output_tokens ?? 0) - Number(left.tokens?.output_tokens ?? 0))[0]
@@ -391,7 +459,7 @@ export function buildSample({ runID, benchmarkID, agentName, configuredModel, ph
   if (phase !== "measured") reasons.push("warmup");
   if (processResult.exitCode !== 0) reasons.push("process_failed");
   if (!selected || selected.failed) reasons.push("generation_failed");
-  if (outputTokens < 512) reasons.push("short_output");
+  if (outputTokens < fixture.minOutputTokens) reasons.push("short_output");
   if (!(decodeWindowMS > 0)) reasons.push("invalid_timing");
   const accountingVersion = usage.schema_version === 2
     ? Number(selected?.accounting_version ?? 0)
@@ -406,12 +474,15 @@ export function buildSample({ runID, benchmarkID, agentName, configuredModel, ph
   // so its timings are not comparable and must stay out of the distributions.
   if (!processResult.formatOK) reasons.push("format_failed");
   const valid = phase === "measured" && reasons.length === 0;
+  const ttfatMS = processResult.firstContentMS === null || processResult.firstContentMS === undefined
+    ? null
+    : nullableRound(processResult.firstContentMS);
   return {
     schemaVersion: BENCHMARK_SCHEMA_VERSION,
     runID,
     benchmarkID,
     timestamp: timestamp.toISOString(),
-    fixture: { id: BENCHMARK_FIXTURE_ID, sha256: fixtureHash },
+    fixture: { id: fixture.id, sha256: fixture.sha256 },
     agent: agentName,
     configuredModel,
     phase,
@@ -426,6 +497,7 @@ export function buildSample({ runID, benchmarkID, agentName, configuredModel, ph
       finalModel: processResult.finalModel,
       parseErrors: processResult.parseErrors,
       error: processResult.stderr || processResult.streamError || null,
+      sawThinking: Boolean(processResult.sawThinking),
     },
     output: {
       visibleCharacters: processResult.visibleCharacters,
@@ -444,6 +516,7 @@ export function buildSample({ runID, benchmarkID, agentName, configuredModel, ph
     },
     metrics: {
       ttftMS: selected ? ttftMS : null,
+      ttfatMS,
       latencyMS: selected ? latencyMS : null,
       postFirstTokenTPS: decodeWindowMS > 0 ? roundNumber(outputTokens / (decodeWindowMS / 1000)) : null,
       endToEndTPS: processResult.wallDurationMS > 0 ? roundNumber(outputTokens / (processResult.wallDurationMS / 1000)) : null,
@@ -456,7 +529,7 @@ export function buildSample({ runID, benchmarkID, agentName, configuredModel, ph
   };
 }
 
-export function summarizeRun({ runID, seed, startedAt, completedAt, outputDirectory, options, selectedAgents, samples, interrupted, aborted = null }) {
+export function summarizeRun({ runID, seed, startedAt, completedAt, outputDirectory, options, selectedAgents, samples, interrupted, aborted = null, fixture = FIXTURES[BENCHMARK_FIXTURE_ID], compareAa = null }) {
   const agents = selectedAgents.map(([name, configuredModel]) => {
     const measured = samples.filter((sample) => sample.agent === name && sample.phase === "measured");
     const valid = measured.filter((sample) => sample.valid);
@@ -478,6 +551,7 @@ export function summarizeRun({ runID, seed, startedAt, completedAt, outputDirect
         incompleteSamples: measured.filter((sample) => !["complete", "legacy"].includes(sample.telemetry.accountingQuality)).length,
       },
       ttftMS: distribution(valid.map((sample) => sample.metrics.ttftMS)),
+      ttfatMS: distribution(valid.map((sample) => sample.metrics.ttfatMS)),
       latencyMS: distribution(valid.map((sample) => sample.metrics.latencyMS)),
       postFirstTokenTPS: distribution(valid.map((sample) => sample.metrics.postFirstTokenTPS)),
       endToEndTPS: distribution(valid.map((sample) => sample.metrics.endToEndTPS)),
@@ -489,7 +563,7 @@ export function summarizeRun({ runID, seed, startedAt, completedAt, outputDirect
   return {
     schemaVersion: BENCHMARK_SCHEMA_VERSION,
     runID,
-    fixture: { id: BENCHMARK_FIXTURE_ID, sha256: fixtureHash },
+    fixture: { id: fixture.id, sha256: fixture.sha256 },
     seed,
     startedAt: startedAt.toISOString(),
     completedAt: completedAt.toISOString(),
@@ -499,6 +573,7 @@ export function summarizeRun({ runID, seed, startedAt, completedAt, outputDirect
     aborted,
     sampleCount: samples.length,
     agents,
+    compareAa,
     exitCode: incomplete ? 2 : 0,
   };
 }
@@ -512,15 +587,71 @@ export function formatBenchmarkMarkdown(summary) {
     `Samples: ${summary.sampleCount}  `,
     `Artifacts: \`${summary.outputDirectory}\``,
     "",
-    "| Agent | Concrete route | Valid | TTFT p50/p90 | Decode tok/s p50/p90 | Wall tok/s p50/p90 | Format | Retries |",
-    "|---|---|---:|---:|---:|---:|---:|---:|",
+    "| Agent | Concrete route | Valid | TTFT p50/p90 | TTFAT p50/p90 | Decode tok/s p50/p90 | Wall tok/s p50/p90 | Format | Retries |",
+    "|---|---|---:|---:|---:|---:|---:|---:|---:|",
   ];
   for (const agent of summary.agents) {
-    lines.push(`| ${agent.name} | ${agent.routes.join(", ") || "—"} | ${agent.validSamples}/${agent.measuredSamples} | ${formatPair(agent.ttftMS, " ms")} | ${formatPair(agent.postFirstTokenTPS)} | ${formatPair(agent.endToEndTPS)} | ${agent.formatPasses}/${agent.measuredSamples} | ${agent.retries} |`);
+    lines.push(`| ${agent.name} | ${agent.routes.join(", ") || "—"} | ${agent.validSamples}/${agent.measuredSamples} | ${formatPair(agent.ttftMS, " ms")} | ${formatPair(agent.ttfatMS, " ms")} | ${formatPair(agent.postFirstTokenTPS)} | ${formatPair(agent.endToEndTPS)} | ${agent.formatPasses}/${agent.measuredSamples} | ${agent.retries} |`);
   }
   if (summary.interrupted) lines.push("", "Run interrupted; artifacts contain partial results.");
   if (summary.aborted) lines.push("", `Run aborted: ${summary.aborted}. Artifacts contain partial results.`);
+  lines.push(
+    "",
+    "ttfatMS is client-wall-clock based (vs proxy-measured ttft_ms) and includes process startup — comparable across agents in one run, not directly to proxy TTFT.",
+  );
+  if (summary.compareAa) {
+    lines.push(...formatCompareAaSection(summary));
+  }
   return lines.join("\n");
+}
+
+export function loadAaCompareExtract(path, readFile = readFileSync) {
+  let parsed;
+  try {
+    parsed = JSON.parse(String(readFile(path, "utf8")));
+  } catch (error) {
+    throw new Error(`could not read AA extract ${path}: ${error.message}`);
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || !parsed.agents || typeof parsed.agents !== "object" || Array.isArray(parsed.agents)) {
+    throw new Error(`invalid AA extract: ${path}`);
+  }
+  return parsed;
+}
+
+function formatCompareAaSection(summary) {
+  const lines = [
+    "",
+    "## Artificial Analysis comparison",
+    "",
+    "| Agent | AA TTFAT (s) | Local TTFAT p50 (s) | TTFAT Δ% | AA tok/s | Local tok/s p50 | tok/s Δ% |",
+    "|---|---:|---:|---:|---:|---:|---:|",
+  ];
+  for (const agent of summary.agents) {
+    const aaAgent = summary.compareAa?.agents?.[agent.name];
+    const performance = aaAgent?.variants?.[0]?.performance;
+    if (!performance) {
+      lines.push(`| ${agent.name} | no AA data | — | — | — | — | — |`);
+      continue;
+    }
+    const aaTtfatS = Number(performance.median_time_to_first_answer_token_seconds);
+    const aaTokS = Number(performance.median_output_tokens_per_second);
+    const localTtfatS = Number.isFinite(agent.ttfatMS?.p50) ? roundNumber(agent.ttfatMS.p50 / 1000) : null;
+    const localTokS = Number.isFinite(agent.postFirstTokenTPS?.p50) ? agent.postFirstTokenTPS.p50 : null;
+    lines.push(
+      `| ${agent.name} | ${formatScalar(aaTtfatS)} | ${formatScalar(localTtfatS)} | ${formatDeltaPercent(localTtfatS, aaTtfatS)} | ${formatScalar(aaTokS)} | ${formatScalar(localTokS)} | ${formatDeltaPercent(localTokS, aaTokS)} |`,
+    );
+  }
+  return lines;
+}
+
+function formatScalar(value) {
+  return Number.isFinite(value) ? String(value) : "—";
+}
+
+function formatDeltaPercent(local, reference) {
+  if (!Number.isFinite(local) || !Number.isFinite(reference) || reference === 0) return "—";
+  const delta = roundNumber(((local - reference) / reference) * 100);
+  return `${delta > 0 ? "+" : ""}${delta}%`;
 }
 
 // The proxy is trusted with the client key, so it must be local. Without this
@@ -706,11 +837,11 @@ function roundNumber(value) {
 }
 
 function nullableRound(value) {
-  return value === null ? null : roundNumber(value);
+  return value === null || value === undefined ? null : roundNumber(value);
 }
 
 function formatPair(distributionValue, suffix = "") {
-  if (distributionValue.p50 === null) return "—";
+  if (!distributionValue || distributionValue.p50 === null || distributionValue.p50 === undefined) return "—";
   return `${distributionValue.p50}${suffix} / ${distributionValue.p90}${suffix}`;
 }
 

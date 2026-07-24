@@ -84,11 +84,25 @@ export async function runDashboard({ toolRoot, paths, version = "local", port = 
   await waitForShutdown(server);
 }
 
-export function createDashboardApp({ toolRoot, paths, token, version = "local", now = () => new Date(), refreshQuota = null }) {
+async function defaultApplyAaVariant(profile, variantSlug, meta) {
+  const module = await import("./aa-ingest.mjs");
+  return module.applyAaVariant(profile, variantSlug, meta);
+}
+
+export function createDashboardApp({
+  toolRoot,
+  paths,
+  token,
+  version = "local",
+  now = () => new Date(),
+  refreshQuota = null,
+  applyVariant = null,
+}) {
   if (!toolRoot) throw new Error("dashboard tool root is required");
   if (!paths?.home || !paths?.stateDirectory || !paths?.configDirectory) throw new Error("dashboard paths are incomplete");
   if (!token) throw new Error("dashboard token is required");
 
+  const resolveApplyVariant = applyVariant ?? defaultApplyAaVariant;
   const pagePath = `/${encodeURIComponent(token)}/`;
   let quotaRefreshPromise = null;
   let quotaRefreshedAt = 0;
@@ -132,6 +146,19 @@ export function createDashboardApp({ toolRoot, paths, token, version = "local", 
         const body = await readJSONBody(request);
         const state = loadDashboardState({ toolRoot, paths, now: now() });
         sendJSON(response, 200, recommendFromState(state, body, now()));
+        return;
+      }
+      if (request.method === "POST" && url.pathname === "/api/aa-variant") {
+        const body = await readJSONBody(request);
+        const entry = await selectAaVariant({
+          toolRoot,
+          paths,
+          profileName: body?.profile,
+          variantSlug: body?.variant,
+          now: now(),
+          applyVariant: resolveApplyVariant,
+        });
+        sendJSON(response, 200, entry);
         return;
       }
       if (request.method === "POST" && url.pathname === "/api/presets") {
@@ -307,6 +334,8 @@ export function validateRecommendationSettings(settings) {
   };
 }
 
+const ACCEPTED_BENCHMARK_FIXTURES = new Set(["raw-v1", "aa-long-v1"]);
+
 export function loadLatestBenchmarks(root, agents) {
   const latest = new Map();
   if (!existsSync(root)) return latest;
@@ -320,31 +349,42 @@ export function loadLatestBenchmarks(root, agents) {
     } catch {
       continue;
     }
-    if (summary?.schemaVersion !== 1 || summary?.fixture?.id !== "raw-v1" || !Array.isArray(summary.agents)) continue;
+    const fixtureId = summary?.fixture?.id;
+    if (summary?.schemaVersion !== 1 || !ACCEPTED_BENCHMARK_FIXTURES.has(fixtureId) || !Array.isArray(summary.agents)) continue;
     const completedAt = Date.parse(summary.completedAt);
     if (!Number.isFinite(completedAt)) continue;
     for (const result of summary.agents) {
       if (!Object.hasOwn(agents, result.name) || agents[result.name]?.model !== result.configuredModel) continue;
-      const previous = latest.get(result.name);
-      if (previous && Date.parse(previous.completedAt) >= completedAt) continue;
-      latest.set(result.name, {
+      const candidate = {
         runID: summary.runID,
         artifact: entry.name,
         completedAt: summary.completedAt,
+        fixtureId,
         routes: Array.isArray(result.routes) ? result.routes : [],
         validSamples: finiteCount(result.validSamples),
         measuredSamples: finiteCount(result.measuredSamples),
         formatPasses: finiteCount(result.formatPasses),
         retries: finiteCount(result.retries),
         ttftMS: safeDistribution(result.ttftMS),
+        ttfatMS: safeDistribution(result.ttfatMS),
         latencyMS: safeDistribution(result.latencyMS),
         postFirstTokenTPS: safeDistribution(result.postFirstTokenTPS),
         endToEndTPS: safeDistribution(result.endToEndTPS),
         provisional: finiteCount(result.validSamples) < 3 || finiteCount(result.validSamples) < finiteCount(result.measuredSamples),
-      });
+      };
+      const previous = latest.get(result.name);
+      if (previous && !preferBenchmarkCandidate(candidate, previous)) continue;
+      latest.set(result.name, candidate);
     }
   }
   return latest;
+}
+
+function preferBenchmarkCandidate(candidate, previous) {
+  const candidateIsAa = candidate.fixtureId === "aa-long-v1";
+  const previousIsAa = previous.fixtureId === "aa-long-v1";
+  if (candidateIsAa !== previousIsAa) return candidateIsAa;
+  return Date.parse(candidate.completedAt) > Date.parse(previous.completedAt);
 }
 
 export function loadQuotaCache(path) {
@@ -401,12 +441,60 @@ export function readDashboardPresets(paths) {
   }));
 }
 
+export async function selectAaVariant({
+  toolRoot,
+  paths,
+  profileName,
+  variantSlug,
+  now = new Date(),
+  applyVariant = defaultApplyAaVariant,
+}) {
+  const profile = String(profileName ?? "").trim();
+  const variant = String(variantSlug ?? "").trim();
+  if (!profile) badRequest("profile is required");
+  if (!variant) badRequest("variant is required");
+
+  const metadataPath = join(toolRoot, "config", "model-recommendations.json");
+  const metadata = readJSONFile(metadataPath, "recommendation metadata");
+  if (!metadata || metadata.schemaVersion !== 1 || !metadata.profiles || typeof metadata.profiles !== "object") {
+    throw new Error("dashboard recommendation metadata is invalid");
+  }
+
+  const profileData = metadata.profiles[profile];
+  if (!profileData || typeof profileData !== "object") badRequest("unknown profile");
+  if (!Array.isArray(profileData.aaVariants) || profileData.aaVariants.length === 0) {
+    badRequest("profile has no Artificial Analysis variants");
+  }
+  if (!profileData.aaVariants.some((entry) => entry?.aaSlug === variant)) {
+    badRequest("unknown Artificial Analysis variant");
+  }
+
+  const updatedProfile = await Promise.resolve(applyVariant(profileData, variant, { now }));
+  if (!updatedProfile || typeof updatedProfile !== "object") {
+    throw new Error("applyAaVariant must return a profile object");
+  }
+
+  const nextDocument = {
+    ...metadata,
+    profiles: {
+      ...metadata.profiles,
+      [profile]: updatedProfile,
+    },
+  };
+  writeJSONAtomic(metadataPath, nextDocument);
+
+  const state = loadDashboardState({ toolRoot, paths, now });
+  const entry = state.roster.find((item) => item.id === profile);
+  if (!entry) badRequest("profile is not in the agent roster");
+  return entry;
+}
+
 function buildRoster({ agents, contexts, metadata, benchmarks, quota, now }) {
   return Object.entries(agents).map(([id, definition]) => {
     const profileMetadata = metadata[id] ?? emptyMetadata();
     const benchmark = benchmarks.get(id) ?? null;
     const profileQuota = buildProfileQuota(profileMetadata, quota, now);
-    return {
+    const entry = {
       id,
       model: definition.model,
       description: typeof definition.description === "string" ? definition.description : "",
@@ -420,7 +508,28 @@ function buildRoster({ agents, contexts, metadata, benchmarks, quota, now }) {
       caveats: profileMetadata.caveats ?? [],
       provenance: buildProvenance(profileMetadata, benchmark, profileQuota),
     };
+    const aaVariants = summarizeAaVariants(profileMetadata.aaVariants);
+    if (aaVariants) {
+      entry.aaVariants = aaVariants;
+      entry.selectedAaVariant = typeof profileMetadata.selectedAaVariant === "string"
+        ? profileMetadata.selectedAaVariant
+        : null;
+    }
+    return entry;
   });
+}
+
+function summarizeAaVariants(variants) {
+  if (!Array.isArray(variants) || variants.length === 0) return null;
+  return variants.map((variant) => ({
+    aaSlug: typeof variant?.aaSlug === "string" ? variant.aaSlug : "",
+    aaName: typeof variant?.aaName === "string" ? variant.aaName : String(variant?.aaSlug ?? ""),
+    artificial_analysis_coding_index: finiteNumberOrNull(variant?.evaluations?.artificial_analysis_coding_index),
+    artificial_analysis_agentic_index: finiteNumberOrNull(variant?.evaluations?.artificial_analysis_agentic_index),
+    artificial_analysis_intelligence_index: finiteNumberOrNull(variant?.evaluations?.artificial_analysis_intelligence_index),
+    median_output_tokens_per_second: finiteNumberOrNull(variant?.performance?.median_output_tokens_per_second),
+    median_time_to_first_answer_token_seconds: finiteNumberOrNull(variant?.performance?.median_time_to_first_answer_token_seconds),
+  }));
 }
 
 function buildProfileQuota(metadata, quota, now) {
@@ -468,9 +577,13 @@ function buildProfileQuota(metadata, quota, now) {
   };
 }
 
-function speedDimension(benchmark) {
+export function speedDimension(benchmark) {
+  const hasTtfat = Number.isFinite(benchmark?.ttfatMS?.p50);
+  const latencyMetric = hasTtfat ? "ttfatMS" : "ttftMS";
+  const latencyMS = hasTtfat ? benchmark.ttfatMS.p50 : benchmark?.ttftMS?.p50;
+  const fixtureId = benchmark?.fixtureId ?? "raw-v1";
   const result = speedUtility({
-    ttftMS: benchmark?.ttftMS?.p50,
+    ttftMS: latencyMS,
     postFirstTokenTPS: benchmark?.postFirstTokenTPS?.p50,
   });
   const valid = finiteCount(benchmark?.validSamples);
@@ -478,7 +591,7 @@ function speedDimension(benchmark) {
   return {
     value: result.value,
     confidence: measured > 0 ? Math.min(1, valid / 3) * (valid / measured) : 0,
-    source: benchmark ? `raw-v1 ${benchmark.runID}` : "missing",
+    source: benchmark ? `${fixtureId} ${latencyMetric} ${benchmark.runID}` : "missing",
   };
 }
 
@@ -570,11 +683,14 @@ function readPresetDocument(paths) {
 }
 
 function writePresetDocument(paths, document) {
-  const path = presetPath(paths);
-  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-  chmodSync(dirname(path), 0o700);
+  writeJSONAtomic(presetPath(paths), document, { mode: 0o600, directoryMode: 0o700 });
+}
+
+function writeJSONAtomic(path, document, { mode = 0o600, directoryMode = 0o700 } = {}) {
+  mkdirSync(dirname(path), { recursive: true, mode: directoryMode });
+  chmodSync(dirname(path), directoryMode);
   const temporary = `${path}.tmp-${process.pid}-${randomUUID()}`;
-  writeFileSync(temporary, `${JSON.stringify(document, null, 2)}\n`, { mode: 0o600 });
+  writeFileSync(temporary, `${JSON.stringify(document, null, 2)}\n`, { mode });
   renameSync(temporary, path);
 }
 

@@ -313,6 +313,36 @@ export function renderDashboardHTML({ token, version = "local" } = {}) {
     .dimension-bar i { display: block; width: var(--dimension); height: 100%; background: linear-gradient(90deg, var(--accent-2), var(--accent)); }
     .dimension-value { color: var(--text); font-size: 11px; text-align: right; }
     .provenance { margin: 0; padding-left: 18px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .aa-variants { display: grid; gap: 8px; }
+    .aa-variant {
+      display: grid;
+      gap: 4px;
+      width: 100%;
+      padding: 12px 13px;
+      text-align: left;
+      color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    .aa-variant:hover { border-color: var(--line-strong); }
+    .aa-variant.selected {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 1px rgba(86, 215, 196, .28);
+    }
+    .aa-variant-name { font-size: 13px; font-weight: 650; letter-spacing: -.01em; }
+    .aa-variant-meta { color: var(--muted); font-size: 11px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+    .aa-variant-selected { color: var(--accent-2); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .site-footer {
+      margin-top: 28px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(58, 70, 88, .45);
+      color: var(--faint);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .site-footer a { color: var(--muted); text-decoration: underline; text-decoration-color: rgba(157, 169, 184, .35); text-underline-offset: 2px; }
+    .site-footer a:hover { color: var(--text); }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
     .muted { color: var(--muted); }
     .nowrap { white-space: nowrap; }
@@ -438,6 +468,7 @@ export function renderDashboardHTML({ token, version = "local" } = {}) {
         </div>
       </section>
     </main>
+    <footer class="site-footer">Model data: <a href="https://artificialanalysis.ai/" rel="noopener noreferrer">Artificial Analysis</a></footer>
   </div>
 
   <dialog id="model-dialog" aria-labelledby="drawer-title" aria-describedby="drawer-description" aria-modal="true">
@@ -448,6 +479,7 @@ export function renderDashboardHTML({ token, version = "local" } = {}) {
       </header>
       <p class="drawer-description" id="drawer-description"></p>
       <div class="fact-row" id="drawer-chips"></div>
+      <section class="drawer-section" id="drawer-variants-section" hidden aria-labelledby="drawer-variants-heading"><h3 id="drawer-variants-heading">Artificial Analysis variants</h3><div class="aa-variants" id="drawer-variants"></div></section>
       <section class="drawer-section" aria-labelledby="drawer-facts-heading"><h3 id="drawer-facts-heading">Live facts</h3><dl class="fact-grid" id="drawer-facts"></dl></section>
       <section class="drawer-section" aria-labelledby="drawer-dimensions-heading"><h3 id="drawer-dimensions-heading">Score contribution</h3><div class="dimension-list" id="drawer-dimensions"></div></section>
       <section class="drawer-section" aria-labelledby="drawer-quota-heading"><h3 id="drawer-quota-heading">Quota windows</h3><dl class="fact-grid" id="drawer-quota"></dl></section>
@@ -908,6 +940,74 @@ export function renderDashboardHTML({ token, version = "local" } = {}) {
       container.append(wrapper);
     }
 
+    function aaRatingProvenanceLine(item) {
+      const ratings = item && item.ratings || {};
+      const candidates = ["aaCoding", "aaAgentic", "aaIntelligence"]
+        .map((key) => ratings[key])
+        .filter((rating) => rating && typeof rating === "object");
+      const rating = candidates.find((entry) => {
+        const source = String(entry.source || "").toLowerCase();
+        return source.includes("artificial") || entry.variant || entry.indexVersion || entry.fetchedAt;
+      });
+      if (!rating) return null;
+      const source = String(rating.source || "").toLowerCase();
+      if (!source.includes("artificial") && !rating.variant && !rating.indexVersion && !rating.fetchedAt) return null;
+      const parts = ["Artificial Analysis"];
+      const variant = rating.variant || item.selectedAaVariant;
+      if (variant) parts.push("variant " + variant);
+      if (rating.indexVersion) parts.push("index v" + rating.indexVersion);
+      if (rating.fetchedAt) parts.push("fetched " + formatDate(rating.fetchedAt));
+      return parts.length > 1 ? parts.join(" · ") : null;
+    }
+
+    function renderAaVariants(item) {
+      const section = byId("drawer-variants-section");
+      const container = byId("drawer-variants");
+      clear(container);
+      const variants = item && Array.isArray(item.aaVariants) ? item.aaVariants : [];
+      if (!variants.length) {
+        section.hidden = true;
+        return;
+      }
+      section.hidden = false;
+      variants.forEach((variant) => {
+        const selected = variant.aaSlug === item.selectedAaVariant;
+        const button = node("button", "aa-variant" + (selected ? " selected" : ""));
+        button.type = "button";
+        button.disabled = selected;
+        button.dataset.aaSlug = variant.aaSlug || "";
+        button.append(node("span", "aa-variant-name", variant.aaName || variant.aaSlug || "Unnamed variant"));
+        if (selected) button.append(node("span", "aa-variant-selected", "Selected"));
+        const meta = [
+          "Coding " + formatNumber(variant.artificial_analysis_coding_index, 1),
+          "Agentic " + formatNumber(variant.artificial_analysis_agentic_index, 1),
+          "Intelligence " + formatNumber(variant.artificial_analysis_intelligence_index, 1),
+          Number.isFinite(Number(variant.median_output_tokens_per_second))
+            ? formatNumber(variant.median_output_tokens_per_second, 1) + " tok/s"
+            : "tok/s —",
+          Number.isFinite(Number(variant.median_time_to_first_answer_token_seconds))
+            ? formatNumber(variant.median_time_to_first_answer_token_seconds, 2) + "s TTFAT"
+            : "TTFAT —"
+        ].join(" · ");
+        button.append(node("span", "aa-variant-meta", meta));
+        if (!selected) {
+          button.addEventListener("click", async () => {
+            try {
+              button.disabled = true;
+              await api("/api/aa-variant", { method: "POST", body: { profile: item.id, variant: variant.aaSlug } });
+              await loadState(true);
+              openDetails(item.id, app.dialogTrigger);
+              announce("Selected Artificial Analysis variant " + (variant.aaName || variant.aaSlug) + ".");
+            } catch (error) {
+              button.disabled = false;
+              showError(error);
+            }
+          });
+        }
+        container.append(button);
+      });
+    }
+
     function openDetails(id, trigger) {
       const item = rosterItem(id);
       if (!item) return;
@@ -924,6 +1024,8 @@ export function renderDashboardHTML({ token, version = "local" } = {}) {
       if (item.context && item.context.status) chips.append(chip("Context · " + item.context.status, item.context.status === "verified" ? "good" : "warn"));
       if (item.benchmark && item.benchmark.provisional) chips.append(chip("Provisional benchmark", "warn"));
       caveats(item).forEach((value) => chips.append(chip(value, "warn")));
+
+      renderAaVariants(item);
 
       const facts = byId("drawer-facts");
       clear(facts);
@@ -966,6 +1068,8 @@ export function renderDashboardHTML({ token, version = "local" } = {}) {
 
       const provenance = byId("drawer-provenance");
       clear(provenance);
+      const aaLine = aaRatingProvenanceLine(item);
+      if (aaLine) provenance.append(node("li", "", aaLine));
       const records = Array.isArray(item.provenance) ? item.provenance : [];
       records.forEach((record) => provenance.append(node("li", "", typeof record === "string" ? record : [record.label || record.source || record.id, record.updatedAt ? formatDate(record.updatedAt) : null].filter(Boolean).join(" · "))));
       caveats(item).forEach((value) => provenance.append(node("li", "", "Caveat · " + value)));

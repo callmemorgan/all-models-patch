@@ -1,6 +1,6 @@
 ---
 description: Benchmark raw response latency and token rates across configured claude-all agents
-argument-hint: [--agents name1,name2] [--warmups N] [--runs N] [--seed VALUE]
+argument-hint: [--agents name1,name2] [--warmups N] [--runs N] [--seed VALUE] [--fixture raw-v1|aa-long-v1] [--compare-aa extract.json]
 ---
 
 Run the deterministic claude-all raw response benchmark with these arguments:
@@ -20,6 +20,16 @@ create an agent team, spawn teammates yourself, substitute model names, or
 reimplement the timing logic. The harness runs configured agents serially and
 defaults to every agent in the live bundle, one warmup, and three measured
 requests each.
+
+Optional flags:
+
+- `--fixture raw-v1|aa-long-v1` selects the workload. `raw-v1` (default) is the
+  short 256-line calibration prompt. `aa-long-v1` is an Artificial
+  Analysis–shaped long-context fixture (~10k input tokens, 48-line output) with
+  client-side TTFAT (`ttfatMS`).
+- `--compare-aa <extract.json>` appends a local-vs-AA comparison section to
+  `summary.md` from a previously extracted AA JSON file (no network). The first
+  variant under each agent supplies AA TTFAT and output tok/s.
 
 Respect the current permission mode. If Bash is blocked, report the exact
 approval needed instead of changing permissions. When the command finishes,

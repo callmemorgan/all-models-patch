@@ -21,11 +21,17 @@ test("ships structured recommendation metadata for every agent profile", () => {
     confidence: 0.9,
     source: "personal-agent-guidance",
   });
-  assert.deepEqual(recommendations.profiles["gpt-5-3-codex-spark"].ratings.aaCoding, {
+  assert.deepEqual(recommendations.profiles["grok-composer-2-5-fast"].ratings.aaCoding, {
     value: null,
     confidence: 0,
     source: "not-rated",
   });
+  assert.equal(
+    recommendations.profiles["gpt-5-3-codex-spark"].ratings.aaCoding.source,
+    "artificialanalysis-unscored",
+  );
+  assert.equal(recommendations.profiles["gpt-5-6-sol"].ratings.aaCoding.source, "artificialanalysis");
+  assert.equal(recommendations.aaMeta.attribution, "https://artificialanalysis.ai/");
 });
 
 test("ships the expanded benchmark comparison routes", () => {

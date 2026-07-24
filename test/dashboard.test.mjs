@@ -17,6 +17,7 @@ import {
   recommendFromState,
   refreshQuotaCache,
   saveDashboardPreset,
+  selectAaVariant,
 } from "../src/dashboard.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -31,6 +32,138 @@ function fixture() {
       home,
       stateDirectory: join(stateRoot, "all-models-patch"),
       configDirectory: join(home, "config", "all-models-patch"),
+    },
+  };
+}
+
+function aaVariantFixture() {
+  const state = fixture();
+  const toolRoot = mkdtempSync(join(tmpdir(), "model-cockpit-tool-"));
+  const configDirectory = join(toolRoot, "config");
+  mkdirSync(configDirectory, { recursive: true });
+  const missingRating = () => ({ value: null, confidence: 0, source: "not-rated" });
+  const baseRatings = {
+    aaCoding: {
+      value: 70,
+      confidence: 0.9,
+      source: "artificial-analysis",
+      variant: "model-default",
+      indexVersion: "1.0",
+      fetchedAt: "2026-07-01T00:00:00.000Z",
+    },
+    aaAgentic: {
+      value: 65,
+      confidence: 0.9,
+      source: "artificial-analysis",
+      variant: "model-default",
+      indexVersion: "1.0",
+      fetchedAt: "2026-07-01T00:00:00.000Z",
+    },
+    aaIntelligence: {
+      value: 72,
+      confidence: 0.9,
+      source: "artificial-analysis",
+      variant: "model-default",
+      indexVersion: "1.0",
+      fetchedAt: "2026-07-01T00:00:00.000Z",
+    },
+    taste: missingRating(),
+    coachability: missingRating(),
+    efficiency: missingRating(),
+  };
+  const aaVariants = [
+    {
+      aaSlug: "model-default",
+      aaName: "Default",
+      evaluations: {
+        artificial_analysis_coding_index: 70,
+        artificial_analysis_agentic_index: 65,
+        artificial_analysis_intelligence_index: 72,
+      },
+      performance: {
+        median_output_tokens_per_second: 80,
+        median_time_to_first_answer_token_seconds: 0.4,
+      },
+      pricing: { price_1m_blended_3_to_1: 1 },
+    },
+    {
+      aaSlug: "model-high",
+      aaName: "High",
+      evaluations: {
+        artificial_analysis_coding_index: 88,
+        artificial_analysis_agentic_index: 84,
+        artificial_analysis_intelligence_index: 90,
+      },
+      performance: {
+        median_output_tokens_per_second: 40,
+        median_time_to_first_answer_token_seconds: 1.2,
+      },
+      pricing: { price_1m_blended_3_to_1: 5 },
+    },
+  ];
+  writeFileSync(join(configDirectory, "claude-all-agents.json"), `${JSON.stringify({
+    "aa-model": { model: "aa-model", description: "AA-backed profile", prompt: "test" },
+    "plain-model": { model: "plain-model", description: "No AA variants", prompt: "test" },
+  })}\n`);
+  writeFileSync(join(configDirectory, "claude-all-contexts.json"), `${JSON.stringify({
+    schemaVersion: 1,
+    models: {
+      "aa-model": { contextTokens: 200_000, compactAtTokens: 160_000, status: "verified", source: "test" },
+      "plain-model": { contextTokens: 100_000, compactAtTokens: 80_000, status: "verified", source: "test" },
+    },
+  })}\n`);
+  writeFileSync(join(configDirectory, "model-recommendations.json"), `${JSON.stringify({
+    schemaVersion: 1,
+    profiles: {
+      "aa-model": {
+        providers: ["claude"],
+        roles: ["test"],
+        ratings: baseRatings,
+        caveats: [],
+        aaVariants,
+        selectedAaVariant: "model-default",
+      },
+      "plain-model": {
+        providers: ["claude"],
+        roles: ["test"],
+        ratings: {
+          aaCoding: missingRating(),
+          aaAgentic: missingRating(),
+          aaIntelligence: missingRating(),
+          taste: missingRating(),
+          coachability: missingRating(),
+          efficiency: missingRating(),
+        },
+        caveats: [],
+      },
+    },
+  }, null, 2)}\n`);
+  return { ...state, toolRoot, configDirectory, aaVariants };
+}
+
+function stubApplyAaVariant(profile, variantSlug) {
+  const variant = (profile.aaVariants ?? []).find((entry) => entry.aaSlug === variantSlug);
+  if (!variant) throw new Error(`missing variant ${variantSlug}`);
+  const rating = (value) => ({
+    value,
+    confidence: 0.95,
+    source: "artificial-analysis",
+    variant: variantSlug,
+    indexVersion: "2.0",
+    fetchedAt: "2026-07-20T12:00:00.000Z",
+  });
+  return {
+    ...profile,
+    selectedAaVariant: variantSlug,
+    ratings: {
+      ...profile.ratings,
+      aaCoding: rating(variant.evaluations.artificial_analysis_coding_index),
+      aaAgentic: rating(variant.evaluations.artificial_analysis_agentic_index),
+      aaIntelligence: rating(variant.evaluations.artificial_analysis_intelligence_index),
+    },
+    speedMetrics: {
+      median_output_tokens_per_second: variant.performance.median_output_tokens_per_second,
+      median_time_to_first_answer_token_seconds: variant.performance.median_time_to_first_answer_token_seconds,
     },
   };
 }
@@ -280,6 +413,116 @@ test("HTTP app requires its launch token for every data endpoint", async () => {
     const allowed = await fetch(`${base}/api/state`, { headers: { "X-All-Models-Patch-Token": token } });
     assert.equal(allowed.status, 200);
     assert.equal((await allowed.json()).roster.length, 28);
+  } finally {
+    await new Promise((resolvePromise, rejectPromise) => server.close((error) => error ? rejectPromise(error) : resolvePromise()));
+  }
+});
+
+test("state payload carries AA variants and rating provenance when present, omits when absent", () => {
+  const state = aaVariantFixture();
+  const dashboard = loadDashboardState({
+    toolRoot: state.toolRoot,
+    paths: state.paths,
+    now: new Date("2026-07-20T20:01:00Z"),
+  });
+  const aa = dashboard.roster.find((profile) => profile.id === "aa-model");
+  const plain = dashboard.roster.find((profile) => profile.id === "plain-model");
+  assert.equal(aa.selectedAaVariant, "model-default");
+  assert.equal(aa.aaVariants.length, 2);
+  assert.deepEqual(aa.aaVariants[1], {
+    aaSlug: "model-high",
+    aaName: "High",
+    artificial_analysis_coding_index: 88,
+    artificial_analysis_agentic_index: 84,
+    artificial_analysis_intelligence_index: 90,
+    median_output_tokens_per_second: 40,
+    median_time_to_first_answer_token_seconds: 1.2,
+  });
+  assert.equal(Object.hasOwn(aa.aaVariants[1], "pricing"), false);
+  assert.equal(aa.ratings.aaCoding.source, "artificial-analysis");
+  assert.equal(aa.ratings.aaCoding.variant, "model-default");
+  assert.equal(aa.ratings.aaCoding.indexVersion, "1.0");
+  assert.equal(aa.ratings.aaCoding.fetchedAt, "2026-07-01T00:00:00.000Z");
+  assert.equal(Object.hasOwn(plain, "aaVariants"), false);
+  assert.equal(Object.hasOwn(plain, "selectedAaVariant"), false);
+});
+
+test("selecting an AA variant persists atomically and recomputes ratings", async () => {
+  const state = aaVariantFixture();
+  const metadataPath = join(state.configDirectory, "model-recommendations.json");
+  const before = readFileSync(metadataPath, "utf8");
+  const entry = await selectAaVariant({
+    toolRoot: state.toolRoot,
+    paths: state.paths,
+    profileName: "aa-model",
+    variantSlug: "model-high",
+    now: new Date("2026-07-20T20:00:00Z"),
+    applyVariant: stubApplyAaVariant,
+  });
+  assert.equal(entry.id, "aa-model");
+  assert.equal(entry.selectedAaVariant, "model-high");
+  assert.equal(entry.ratings.aaCoding.value, 88);
+  assert.equal(entry.ratings.aaCoding.variant, "model-high");
+  assert.equal(entry.ratings.aaCoding.indexVersion, "2.0");
+  const after = JSON.parse(readFileSync(metadataPath, "utf8"));
+  assert.equal(after.profiles["aa-model"].selectedAaVariant, "model-high");
+  assert.equal(after.profiles["aa-model"].ratings.aaAgentic.value, 84);
+  assert.equal(after.profiles["plain-model"].ratings.aaCoding.source, "not-rated");
+  assert.notEqual(before, readFileSync(metadataPath, "utf8"));
+  assert.equal(statSync(metadataPath).mode & 0o777, 0o600);
+});
+
+test("AA variant endpoint validates profile and variant selection", async () => {
+  const state = aaVariantFixture();
+  const token = "123e4567-e89b-42d3-a456-426614174099";
+  const server = createServer(createDashboardApp({
+    toolRoot: state.toolRoot,
+    paths: state.paths,
+    token,
+    now: () => new Date("2026-07-20T20:00:00Z"),
+    applyVariant: stubApplyAaVariant,
+  }));
+  await new Promise((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+  const address = server.address();
+  const base = `http://127.0.0.1:${address.port}`;
+  const headers = {
+    "Content-Type": "application/json",
+    "X-All-Models-Patch-Token": token,
+  };
+  try {
+    const happy = await fetch(`${base}/api/aa-variant`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ profile: "aa-model", variant: "model-high" }),
+    });
+    assert.equal(happy.status, 200);
+    const body = await happy.json();
+    assert.equal(body.selectedAaVariant, "model-high");
+    assert.equal(body.ratings.aaIntelligence.value, 90);
+
+    const unknownProfile = await fetch(`${base}/api/aa-variant`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ profile: "missing-profile", variant: "model-high" }),
+    });
+    assert.equal(unknownProfile.status, 400);
+    assert.match((await unknownProfile.json()).error, /unknown profile/i);
+
+    const unknownVariant = await fetch(`${base}/api/aa-variant`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ profile: "aa-model", variant: "does-not-exist" }),
+    });
+    assert.equal(unknownVariant.status, 400);
+    assert.match((await unknownVariant.json()).error, /unknown Artificial Analysis variant/i);
+
+    const noVariants = await fetch(`${base}/api/aa-variant`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ profile: "plain-model", variant: "model-high" }),
+    });
+    assert.equal(noVariants.status, 400);
+    assert.match((await noVariants.json()).error, /no Artificial Analysis variants/i);
   } finally {
     await new Promise((resolvePromise, rejectPromise) => server.close((error) => error ? rejectPromise(error) : resolvePromise()));
   }

@@ -3,6 +3,7 @@ import { existsSync, realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
+import { formatAaIngestSummary, parseAaIngestOptions, runAaIngest } from "./aa-ingest.mjs";
 import { agentTeamsEnvironment, effectiveAgentTeamsConfig, readAgentTeamsConfig, writeAgentTeamsConfig } from "./agent-teams.mjs";
 import { parseBenchmarkOptions, runBenchmark } from "./benchmark.mjs";
 import { loadContextEnvironment } from "./context-map.mjs";
@@ -120,6 +121,10 @@ try {
     });
     process.stdout.write(`${benchmarkOptions.json ? JSON.stringify(result.summary, null, 2) : result.markdown}\n`);
     if (result.exitCode !== 0) process.exitCode = result.exitCode;
+  } else if (command === "aa-ingest") {
+    const aaOptions = parseAaIngestOptions(args.slice(1));
+    const result = runAaIngest({ toolRoot, ...aaOptions });
+    process.stdout.write(formatAaIngestSummary(result));
   } else if (command === "dashboard") {
     const dashboardOptions = parseDashboardOptions(args.slice(1));
     const version = loadSupportCatalog(toolRoot).catalog.managerVersion;

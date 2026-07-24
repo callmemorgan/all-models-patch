@@ -15,7 +15,8 @@ test("dashboard renders a complete dependency-free document with core views", ()
   assert.match(html, /id="roster-body"/);
   assert.match(html, /id="model-dialog"/);
   assert.match(html, /prefers-reduced-motion/);
-  assert.doesNotMatch(html, /(?:src|href)="https?:\/\//);
+  assert.doesNotMatch(html, /src="https?:\/\//);
+  assert.match(html, /href="https:\/\/artificialanalysis\.ai\/"/);
 });
 
 test("dashboard embeds its token only as an HTML-safe JavaScript string and same-origin header", () => {
@@ -121,4 +122,24 @@ test("embedded dashboard JavaScript parses", () => {
   const match = html.match(/<script>([\s\S]*)<\/script>/);
   assert.ok(match);
   assert.doesNotThrow(() => new Function(match[1]));
+});
+
+test("dashboard always attributes Artificial Analysis in the page footer", () => {
+  const html = renderDashboardHTML({ token: "token" });
+  assert.match(html, /<footer class="site-footer">Model data: <a href="https:\/\/artificialanalysis\.ai\/" rel="noopener noreferrer">Artificial Analysis<\/a><\/footer>/);
+});
+
+test("inspect modal includes Artificial Analysis variant picker markers", () => {
+  const html = renderDashboardHTML({ token: "token" });
+  assert.match(html, /id="drawer-variants-section"/);
+  assert.match(html, /id="drawer-variants"/);
+  assert.match(html, /function renderAaVariants\(item\)/);
+  assert.match(html, /item\.aaVariants/);
+  assert.match(html, /item\.selectedAaVariant/);
+  assert.match(html, /api\("\/api\/aa-variant", \{ method: "POST", body: \{ profile: item\.id, variant: variant\.aaSlug \} \}\)/);
+  assert.match(html, /parts = \["Artificial Analysis"\]/);
+  assert.match(html, /parts\.push\("variant " \+ variant\)/);
+  assert.match(html, /parts\.push\("index v" \+ rating\.indexVersion\)/);
+  assert.match(html, /parts\.join\(" · "\)/);
+  assert.match(html, /function aaRatingProvenanceLine\(item\)/);
 });
