@@ -104,10 +104,10 @@
     "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
     "model": "kimi-k2.7-code-highspeed"
   },
-  "gemini-3-5-flash": {
-    "description": "Large-context reconnaissance and mechanical analysis with Gemini 3.5 Flash.",
+  "gemini-3-6-flash": {
+    "description": "Large-context reconnaissance and mechanical analysis with the unbenched Gemini 3.6 Flash High route.",
     "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
-    "model": "gemini-3-flash-agent"
+    "model": "gemini-3.6-flash-high"
   },
   "grok-composer-2-5-fast": {
     "description": "Fast coding iterations and bounded repository sweeps with Grok Composer 2.5 Fast.",
@@ -133,16 +133,6 @@
     "description": "Open-model coding and independent review with GPT-OSS 120B Medium.",
     "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
     "model": "gpt-oss-120b-medium"
-  },
-  "gemini-3-5-flash-low": {
-    "description": "Large-context analysis with the medium-speed Gemini 3.5 Flash route.",
-    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
-    "model": "gemini-3.5-flash-low"
-  },
-  "gemini-3-5-flash-extra-low": {
-    "description": "Large-context high-speed analysis with the low-effort Gemini 3.5 Flash route.",
-    "prompt": "Complete only the delegated task. Follow repository instructions, inspect relevant files before acting, preserve unrelated work, validate the result, and report changes, checks, and remaining risks concisely.",
-    "model": "gemini-3.5-flash-extra-low"
   },
   "grok-build-0-1": {
     "description": "Fast agentic software-engineering work with Grok Build 0.1.",

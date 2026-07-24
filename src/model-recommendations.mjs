@@ -44,27 +44,37 @@ const DEFAULT_SLOW_LATENCY_MS = 60_000;
 const DEFAULT_RESET_HORIZON_MS = 24 * 60 * 60 * 1_000;
 
 /**
+ * Bad slider values are client input, not a server fault. The dashboard maps an
+ * error without statusCode to 500, which hides the message from the caller.
+ */
+export function invalidWeights(message) {
+  const error = new RangeError(message);
+  error.statusCode = 400;
+  return error;
+}
+
+/**
  * Validate slider weights and return fractions that sum to one. Partial inputs
  * override the defaults so old saved presets continue to gain new dimensions.
  */
 export function normalizeWeights(weights = DEFAULT_WEIGHTS) {
   if (!isPlainObject(weights)) {
-    throw new TypeError("weights must be an object");
+    throw invalidWeights("weights must be an object");
   }
 
   for (const key of Object.keys(weights)) {
     if (!DIMENSION_IDS.includes(key)) {
-      throw new Error(`unknown recommendation weight: ${key}`);
+      throw invalidWeights(`unknown recommendation weight: ${key}`);
     }
     if (!isFiniteInRange(weights[key], 0, 100)) {
-      throw new RangeError(`${key} weight must be a finite number from 0 to 100`);
+      throw invalidWeights(`${key} weight must be a finite number from 0 to 100`);
     }
   }
 
   const merged = { ...DEFAULT_WEIGHTS, ...weights };
   const total = DIMENSION_IDS.reduce((sum, id) => sum + merged[id], 0);
   if (total === 0) {
-    throw new RangeError("at least one recommendation weight must be greater than zero");
+    throw invalidWeights("at least one recommendation weight must be greater than zero");
   }
 
   return Object.fromEntries(DIMENSION_IDS.map((id) => [id, merged[id] / total]));
@@ -205,6 +215,7 @@ export function scoreRecommendations(profiles, {
 
   const normalizedWeights = normalizeWeights(weights);
   const scored = [];
+  const excluded = [];
 
   profiles.forEach((profile, originalIndex) => {
     if (!isPlainObject(profile)) {
@@ -212,11 +223,6 @@ export function scoreRecommendations(profiles, {
     }
 
     const dimensions = derivedDimensions(profile, { now });
-    if (profile.eligible === false || profile.hardEligible === false ||
-        Object.values(dimensions).some(isHardIneligibleDimension)) {
-      return;
-    }
-
     const contributions = DIMENSION_IDS.map((dimensionId) => {
       const evidence = normalizeDimensionEvidence(dimensions[dimensionId]);
       const weightFraction = normalizedWeights[dimensionId];
@@ -236,10 +242,35 @@ export function scoreRecommendations(profiles, {
       };
     });
 
+    // Ineligible profiles are returned unranked rather than dropped. Omitting
+    // them let callers treat "absent from the results" as "eligible", which
+    // advertised unusable routes as available.
+    const ineligibleDimensions = Object.entries(dimensions)
+      .filter(([, evidence]) => isHardIneligibleDimension(evidence))
+      .map(([dimensionId]) => dimensionId);
+    if (profile.eligible === false || profile.hardEligible === false || ineligibleDimensions.length > 0) {
+      const reasons = [...(profile.reasons ?? [])];
+      for (const dimensionId of ineligibleDimensions) {
+        const reason = `${DIMENSION_LABELS[dimensionId] ?? dimensionId} evidence marks this profile ineligible`;
+        if (!reasons.includes(reason)) reasons.push(reason);
+      }
+      if (reasons.length === 0) reasons.push("profile is marked ineligible");
+      excluded.push({
+        ...profile,
+        eligible: false,
+        reasons,
+        score: null,
+        overallScore: null,
+        contributions,
+        _originalIndex: originalIndex,
+      });
+      return;
+    }
+
     const score = round(contributions.reduce((sum, item) => sum + item.contribution, 0));
     scored.push({
       ...profile,
-      eligible: profile.eligible !== false,
+      eligible: true,
       reasons: profile.reasons ?? [],
       score,
       overallScore: score,
@@ -249,7 +280,11 @@ export function scoreRecommendations(profiles, {
   });
 
   scored.sort((left, right) => right.score - left.score || left._originalIndex - right._originalIndex);
-  return scored.map(({ _originalIndex, ...profile }, index) => ({ ...profile, rank: index + 1 }));
+  excluded.sort((left, right) => left._originalIndex - right._originalIndex);
+  return [
+    ...scored.map(({ _originalIndex, ...profile }, index) => ({ ...profile, rank: index + 1 })),
+    ...excluded.map(({ _originalIndex, ...profile }) => ({ ...profile, rank: null })),
+  ];
 }
 
 function derivedDimensions(profile, { now }) {

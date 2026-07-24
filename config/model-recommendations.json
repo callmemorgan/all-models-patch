@@ -277,18 +277,18 @@
       },
       "caveats": []
     },
-    "gemini-3-5-flash": {
+    "gemini-3-6-flash": {
       "providers": ["antigravity"],
       "quotaWindowIds": { "antigravity": ["gemini-5h"] },
       "roles": ["reconnaissance", "mechanical-analysis", "large-context"],
       "ratings": {
-        "capability": { "value": 40, "confidence": 0.8, "source": "personal-agent-guidance" },
-        "taste": { "value": 60, "confidence": 0.8, "source": "personal-agent-guidance" },
+        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
+        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
         "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
         "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
         "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
       },
-      "caveats": ["Best suited to reconnaissance and mechanical analysis."]
+      "caveats": ["Not yet locally benchmarked; routing guidance is provisional."]
     },
     "grok-composer-2-5-fast": {
       "providers": ["grok"],
@@ -354,32 +354,6 @@
         "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
       },
       "caveats": []
-    },
-    "gemini-3-5-flash-low": {
-      "providers": ["antigravity"],
-      "quotaWindowIds": { "antigravity": ["gemini-5h"] },
-      "roles": ["analysis", "large-context"],
-      "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
-      },
-      "caveats": []
-    },
-    "gemini-3-5-flash-extra-low": {
-      "providers": ["antigravity"],
-      "quotaWindowIds": { "antigravity": ["gemini-5h"] },
-      "roles": ["analysis", "large-context"],
-      "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
-      },
-      "caveats": ["Low-effort route; prefer mechanical analysis over deep reasoning."]
     },
     "grok-build-0-1": {
       "providers": ["grok"],

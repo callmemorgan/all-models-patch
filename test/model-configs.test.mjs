@@ -48,13 +48,19 @@ test("ships the expanded benchmark comparison routes", () => {
     "kimi-k2-7-code-fast": "kimi-k2.7-code-highspeed",
     "opus-4-6-thinking": "claude-opus-4-6-thinking",
     "gpt-oss-120b": "gpt-oss-120b-medium",
-    "gemini-3-5-flash-low": "gemini-3.5-flash-low",
-    "gemini-3-5-flash-extra-low": "gemini-3.5-flash-extra-low",
+    "gemini-3-6-flash": "gemini-3.6-flash-high",
     "grok-build-0-1": "grok-build-0.1",
   };
   for (const [name, model] of Object.entries(expectedAgents)) {
     assert.equal(agents[name].model, model);
     assert.ok(contexts.models[model]);
+  }
+  assert.equal(contexts.models["gemini-3.6-flash-high"].contextTokens, 1_048_576);
+  for (const name of ["gemini-3-5-flash", "gemini-3-5-flash-low", "gemini-3-5-flash-extra-low"]) {
+    assert.equal(Object.hasOwn(agents, name), false);
+  }
+  for (const model of ["gemini-3-flash-agent", "gemini-3.5-flash-low", "gemini-3.5-flash-extra-low"]) {
+    assert.equal(Object.hasOwn(contexts.models, model), false);
   }
   assert.deepEqual(contexts.models["kimi-k2.7-code-highspeed"], contexts.models["kimi-k2.7-code"]);
   assert.equal(contexts.models["claude-opus-4-6-thinking"].contextTokens, 200_000);

@@ -35,6 +35,54 @@ function fixture() {
   };
 }
 
+test("a quota window without usedPercent is unknown, never full headroom", () => {
+  const state = fixture();
+  const quotaPath = join(state.stateRoot, "agents-statusline", "foreign-usage.json");
+  mkdirSync(dirname(quotaPath), { recursive: true });
+  writeFileSync(quotaPath, `${JSON.stringify({
+    fetchedAt: "2026-07-20T20:00:00Z",
+    providers: {
+      claude: {
+        mode: "authoritative",
+        state: "available",
+        windows: [
+          { id: "5h", label: "Claude 5h", remainingPercent: 5, resetAt: "2026-07-20T22:00:00Z" },
+          { id: "weekly", label: "Claude weekly", usagePercent: 90, resetAt: "2026-07-25T22:00:00Z" },
+        ],
+      },
+    },
+  })}\n`, { mode: 0o600 });
+
+  const dashboard = loadDashboardState({ toolRoot: repoRoot, paths: state.paths, now: new Date("2026-07-20T20:01:00Z") });
+  for (const profile of dashboard.roster) {
+    for (const window of profile.quota?.windows ?? []) {
+      assert.notEqual(window.remainingPercent, 100, `${profile.id}/${window.id} reported full headroom from missing data`);
+    }
+  }
+});
+
+test("a profile the scorer drops is never presented as eligible", () => {
+  const state = fixture();
+  const quotaPath = join(state.stateRoot, "agents-statusline", "foreign-usage.json");
+  mkdirSync(dirname(quotaPath), { recursive: true });
+  writeFileSync(quotaPath, `${JSON.stringify({
+    fetchedAt: "2026-07-20T20:00:00Z",
+    providers: {
+      claude: { mode: "authoritative", state: "unavailable", windows: [] },
+    },
+  })}\n`, { mode: 0o600 });
+
+  const dashboard = loadDashboardState({ toolRoot: repoRoot, paths: state.paths, now: new Date("2026-07-20T20:01:00Z") });
+  const ineligible = dashboard.roster.filter((profile) => !profile.eligible);
+  assert(ineligible.length > 0, "expected the unavailable provider to make some route ineligible");
+  for (const profile of ineligible) {
+    assert(profile.reasons.length > 0, `${profile.id} was marked ineligible with no reason`);
+  }
+  for (const profile of dashboard.roster) {
+    assert.equal(typeof profile.eligible, "boolean");
+  }
+});
+
 test("dashboard options stay loopback-oriented and validate ports", () => {
   assert.deepEqual(parseDashboardOptions([]), { port: 0, open: true });
   assert.deepEqual(parseDashboardOptions(["--no-open", "--port", "4317"]), { port: 4317, open: false });
@@ -62,7 +110,7 @@ test("dashboard state joins roster, context, benchmark, quota, and personal evid
   })}\n`, { mode: 0o600 });
 
   const dashboard = loadDashboardState({ toolRoot: repoRoot, paths: state.paths, now: new Date("2026-07-20T20:01:00Z") });
-  assert.equal(dashboard.roster.length, 30);
+  assert.equal(dashboard.roster.length, 28);
   const fable = dashboard.roster.find((profile) => profile.id === "fable-5");
   assert.equal(fable.model, "claude-fable-5");
   assert.equal(fable.context.contextTokens, 1_000_000);
@@ -189,7 +237,7 @@ test("HTTP app requires its launch token for every data endpoint", async () => {
 
     const allowed = await fetch(`${base}/api/state`, { headers: { "X-All-Models-Patch-Token": token } });
     assert.equal(allowed.status, 200);
-    assert.equal((await allowed.json()).roster.length, 30);
+    assert.equal((await allowed.json()).roster.length, 28);
   } finally {
     await new Promise((resolvePromise, rejectPromise) => server.close((error) => error ? rejectPromise(error) : resolvePromise()));
   }

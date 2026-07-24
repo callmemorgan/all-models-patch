@@ -30,13 +30,11 @@
     "kimi-k2.7-code-highspeed": { "contextTokens": 262144, "compactAtTokens": 210000, "status": "route-validated", "source": "cliproxyapi-registry" },
     "kimi-k2.6": { "contextTokens": 262144, "compactAtTokens": 210000, "status": "route-validated", "source": "cliproxyapi-registry" },
     "kimi-k3": { "contextTokens": 1000000, "compactAtTokens": 900000, "status": "route-validated", "source": "kimi-official-docs" },
-    "gemini-3-flash-agent": { "contextTokens": 1048576, "compactAtTokens": 950000, "status": "route-validated", "source": "cliproxyapi-registry" },
+    "gemini-3.6-flash-high": { "contextTokens": 1048576, "compactAtTokens": 950000, "status": "route-validated", "source": "cliproxyapi-registry" },
     "grok-composer-2.5-fast": { "contextTokens": 200000, "compactAtTokens": 160000, "status": "route-validated", "source": "cliproxyapi-registry" },
     "minimax-m3": { "contextTokens": 524288, "compactAtTokens": 471859, "status": "route-validated", "source": "ollama-cloud-manifest" },
     "glm-5.2": { "contextTokens": 1000000, "compactAtTokens": 900000, "status": "route-validated", "source": "ollama-cloud-manifest" },
     "gpt-oss-120b-medium": { "contextTokens": 114000, "compactAtTokens": 100000, "status": "route-validated", "source": "cliproxyapi-registry" },
-    "gemini-3.5-flash-low": { "contextTokens": 1048576, "compactAtTokens": 950000, "status": "route-validated", "source": "cliproxyapi-registry" },
-    "gemini-3.5-flash-extra-low": { "contextTokens": 1048576, "compactAtTokens": 950000, "status": "route-validated", "source": "cliproxyapi-registry" },
     "grok-build-0.1": { "contextTokens": 256000, "compactAtTokens": 210000, "status": "route-validated", "source": "cliproxyapi-registry" }
   }
 }

@@ -41,6 +41,21 @@ test("rejects invalid, unknown, and all-zero weights", () => {
   );
 });
 
+test("weight validation failures are client errors, not server faults", () => {
+  const invalid = [
+    null,
+    { speed: Number.NaN },
+    { vibes: 10 },
+    Object.fromEntries(Object.keys(DEFAULT_WEIGHTS).map((key) => [key, 0])),
+  ];
+  for (const weights of invalid) {
+    assert.throws(() => normalizeWeights(weights), (error) => {
+      assert.equal(error.statusCode, 400, `${JSON.stringify(weights)} did not map to HTTP 400`);
+      return true;
+    });
+  }
+});
+
 test("speed utility estimates latency and applies logarithmic diminishing returns", () => {
   const utility = speedUtility({ ttftMS: 1_000, postFirstTokenTPS: 100 });
   assert.equal(utility.effectiveLatencyMS, 6_000);
@@ -212,13 +227,25 @@ test("missing and malformed dimensions remain neutral", () => {
   assert.equal(results[1].contributions.find((item) => item.dimensionId === "taste").missing, true);
 });
 
-test("excludes profile- and dimension-level hard failures", () => {
+test("returns profile- and dimension-level hard failures unranked, never as eligible", () => {
   const results = scoreRecommendations([
     { id: "available", dimensions: { taste: 50 } },
     { id: "route-down", eligible: false, reasons: ["route unavailable"], dimensions: { taste: 100 } },
     { id: "privacy-mismatch", dimensions: { capability: { value: 100, confidence: 1, eligible: false } } },
   ]);
-  assert.deepEqual(results.map((item) => item.id), ["available"]);
+  assert.deepEqual(results.map((item) => item.id), ["available", "route-down", "privacy-mismatch"]);
+
+  const ranked = results.filter((item) => item.eligible);
+  assert.deepEqual(ranked.map((item) => item.id), ["available"]);
+  assert.equal(ranked[0].rank, 1);
+
+  for (const item of results.filter((item) => !item.eligible)) {
+    assert.equal(item.score, null, `${item.id} kept a score`);
+    assert.equal(item.rank, null, `${item.id} kept a rank`);
+    assert(item.reasons.length > 0, `${item.id} carried no reason`);
+  }
+  assert.deepEqual(results.find((item) => item.id === "route-down").reasons, ["route unavailable"]);
+  assert.match(results.find((item) => item.id === "privacy-mismatch").reasons[0], /ineligible/);
 });
 
 test("ranks by score, keeps stable tie order, and does not mutate profiles", () => {

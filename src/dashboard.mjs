@@ -175,12 +175,22 @@ export async function refreshQuotaCache(paths, dependencies = {}) {
       finish(false);
       return;
     }
+    let escalation = null;
     timeout = setTimeout(() => {
       child.kill("SIGTERM");
+      // Escalate rather than leaving a helper that ignores SIGTERM running and
+      // unreaped; the close listener below stays attached to reap it.
+      escalation = setTimeout(() => {
+        if (!child.killed) child.kill("SIGKILL");
+      }, 2_000);
+      escalation.unref?.();
       finish(false);
     }, timeoutMS);
     child.once("error", () => finish(false));
-    child.once("close", (code) => finish(code === 0));
+    child.once("close", (code) => {
+      if (escalation) clearTimeout(escalation);
+      finish(code === 0);
+    });
   });
 }
 
@@ -217,8 +227,10 @@ export function loadDashboardState({ toolRoot, paths, now = new Date() }) {
   const roster = profiles.map((profile) => ({
     ...profile,
     defaultScore: byID.get(profile.id)?.score ?? null,
-    eligible: byID.get(profile.id)?.eligible ?? true,
-    reasons: byID.get(profile.id)?.reasons ?? [],
+    // Fail closed: a profile missing from the scored set is not evidence that
+    // it is usable, so it must never default to eligible.
+    eligible: byID.get(profile.id)?.eligible ?? false,
+    reasons: byID.get(profile.id)?.reasons ?? ["profile was not scored"],
   }));
 
   return {
@@ -414,6 +426,10 @@ function buildProfileQuota(metadata, quota, now) {
     const requestedIDs = metadata.quotaWindowIds?.[providerID] ?? [];
     const windows = (Array.isArray(provider.windows) ? provider.windows : [])
       .filter((window) => requestedIDs.length === 0 || requestedIDs.includes(window.id))
+      // A window with no usable usedPercent is unknown, not empty. Clamping it
+      // to 0 reported 100% remaining and ranked an exhausted route as the best
+      // available one.
+      .filter((window) => Number.isFinite(Number(window?.usedPercent)))
       .map((window) => ({
         id: String(window.id ?? ""),
         label: String(window.label ?? window.id ?? "Quota"),
