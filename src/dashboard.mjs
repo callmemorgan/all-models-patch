@@ -334,7 +334,13 @@ export function validateRecommendationSettings(settings) {
   };
 }
 
-const ACCEPTED_BENCHMARK_FIXTURES = new Set(["raw-v1", "aa-long-v1"]);
+const ACCEPTED_BENCHMARK_FIXTURES = new Set(["raw-v1", "aa-long-v1", "aa-story-v1"]);
+// Free-form fixtures rank speed on tokenizer-neutral chars/s; this converts the
+// rate back into speedUtility's token-based workload model. Four visible
+// characters per token is a neutral cross-provider constant, not any single
+// vendor's tokenizer.
+const NEUTRAL_CHARS_PER_TOKEN = 4;
+const FIXTURE_PREFERENCE = ["aa-story-v1", "aa-long-v1", "raw-v1"];
 
 export function loadLatestBenchmarks(root, agents) {
   const latest = new Map();
@@ -370,6 +376,7 @@ export function loadLatestBenchmarks(root, agents) {
         latencyMS: safeDistribution(result.latencyMS),
         postFirstTokenTPS: safeDistribution(result.postFirstTokenTPS),
         endToEndTPS: safeDistribution(result.endToEndTPS),
+        visibleCharactersPerSecond: safeDistribution(result.visibleCharactersPerSecond),
         provisional: finiteCount(result.validSamples) < 3 || finiteCount(result.validSamples) < finiteCount(result.measuredSamples),
       };
       const previous = latest.get(result.name);
@@ -381,9 +388,9 @@ export function loadLatestBenchmarks(root, agents) {
 }
 
 function preferBenchmarkCandidate(candidate, previous) {
-  const candidateIsAa = candidate.fixtureId === "aa-long-v1";
-  const previousIsAa = previous.fixtureId === "aa-long-v1";
-  if (candidateIsAa !== previousIsAa) return candidateIsAa;
+  const candidateRank = FIXTURE_PREFERENCE.indexOf(candidate.fixtureId);
+  const previousRank = FIXTURE_PREFERENCE.indexOf(previous.fixtureId);
+  if (candidateRank !== previousRank) return candidateRank < previousRank;
   return Date.parse(candidate.completedAt) > Date.parse(previous.completedAt);
 }
 
@@ -582,16 +589,22 @@ export function speedDimension(benchmark) {
   const latencyMetric = hasTtfat ? "ttfatMS" : "ttftMS";
   const latencyMS = hasTtfat ? benchmark.ttfatMS.p50 : benchmark?.ttftMS?.p50;
   const fixtureId = benchmark?.fixtureId ?? "raw-v1";
+  // Provider tokenizers count identical text differently, so cross-model rate
+  // comparisons must use chars/s where the fixture provides it; the neutral
+  // conversion keeps speedUtility's token-based workload model.
+  const charsPerSecond = benchmark?.visibleCharactersPerSecond?.p50;
+  const hasChars = Number.isFinite(charsPerSecond) && charsPerSecond > 0;
+  const rateMetric = hasChars ? "charsPS" : "tokPS";
   const result = speedUtility({
     ttftMS: latencyMS,
-    postFirstTokenTPS: benchmark?.postFirstTokenTPS?.p50,
+    postFirstTokenTPS: hasChars ? charsPerSecond / NEUTRAL_CHARS_PER_TOKEN : benchmark?.postFirstTokenTPS?.p50,
   });
   const valid = finiteCount(benchmark?.validSamples);
   const measured = finiteCount(benchmark?.measuredSamples);
   return {
     value: result.value,
     confidence: measured > 0 ? Math.min(1, valid / 3) * (valid / measured) : 0,
-    source: benchmark ? `${fixtureId} ${latencyMetric} ${benchmark.runID}` : "missing",
+    source: benchmark ? `${fixtureId} ${latencyMetric}+${rateMetric} ${benchmark.runID}` : "missing",
   };
 }
 
@@ -601,7 +614,7 @@ function reliabilityDimension(benchmark) {
   return {
     value: measured > 0 ? roundNumber((valid / measured) * 100) : 50,
     confidence: measured > 0 ? Math.min(1, measured / 5) : 0,
-    source: benchmark ? `raw-v1 fixture completion ${valid}/${measured}` : "missing",
+    source: benchmark ? `${benchmark.fixtureId} fixture completion ${valid}/${measured}` : "missing",
   };
 }
 
@@ -712,7 +725,7 @@ function sourceDescriptor(name, path, live, updatedAt, relativeRoot, error = nul
 function buildProvenance(metadata, benchmark, quota) {
   const sources = new Set();
   for (const rating of Object.values(metadata.ratings ?? {})) if (rating?.source) sources.add(rating.source);
-  if (benchmark) sources.add(`raw-v1 benchmark ${benchmark.runID}`);
+  if (benchmark) sources.add(`${benchmark.fixtureId} benchmark ${benchmark.runID}`);
   if (quota?.fetchedAt) sources.add(`quota cache ${quota.fetchedAt}`);
   return [...sources];
 }

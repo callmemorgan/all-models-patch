@@ -24,6 +24,7 @@ import {
   validateFixtureOutput,
 } from "../src/benchmark.mjs";
 import { loadLatestBenchmarks, speedDimension } from "../src/dashboard.mjs";
+import { speedUtility } from "../src/model-recommendations.mjs";
 
 const ids = [
   "123e4567-e89b-42d3-a456-426614174000",
@@ -563,9 +564,39 @@ test("loadLatestBenchmarks prefers newest aa-long-v1 over raw-v1", () => {
   assert.equal(benchmarks.get("beta").runID, "raw-only");
 
   const aaSpeed = speedDimension(benchmarks.get("alpha"));
-  assert.match(aaSpeed.source, /aa-long-v1 ttfatMS aa-old/);
+  assert.match(aaSpeed.source, /aa-long-v1 ttfatMS\+tokPS aa-old/);
   const rawSpeed = speedDimension(benchmarks.get("beta"));
-  assert.match(rawSpeed.source, /raw-v1 ttftMS raw-only/);
+  assert.match(rawSpeed.source, /raw-v1 ttftMS\+tokPS raw-only/);
+});
+
+test("loadLatestBenchmarks prefers aa-story-v1 and speedDimension ranks it on chars/s", () => {
+  const root = mkdtempSync(join(tmpdir(), "bench-latest-"));
+  writeBenchmarkSummary(join(root, "aa-long-new"), {
+    runID: "aa-long-new",
+    fixtureId: "aa-long-v1",
+    completedAt: "2026-07-24T12:00:00Z",
+    model: "model-a",
+    speed: 250,
+    ttfatMS: 400,
+  });
+  writeBenchmarkSummary(join(root, "story-old"), {
+    runID: "story-old",
+    fixtureId: "aa-story-v1",
+    completedAt: "2026-07-24T11:00:00Z",
+    model: "model-a",
+    speed: 50,
+    ttfatMS: 5000,
+    charsPerSecond: 400,
+  });
+  const benchmarks = loadLatestBenchmarks(root, { alpha: { model: "model-a" } });
+  assert.equal(benchmarks.get("alpha").fixtureId, "aa-story-v1");
+  assert.equal(benchmarks.get("alpha").visibleCharactersPerSecond.p50, 400);
+
+  const speed = speedDimension(benchmarks.get("alpha"));
+  assert.match(speed.source, /aa-story-v1 ttfatMS\+charsPS story-old/);
+  // 400 chars/s at 4 chars/token = 100 tok/s equivalent, not the raw 50 tok/s.
+  const tokenEquivalent = speedUtility({ ttftMS: 5000, postFirstTokenTPS: 100 });
+  assert.equal(speed.value, tokenEquivalent.value);
 });
 
 function benchmarkHome() {
@@ -662,7 +693,7 @@ function canonicalBreakdown(inputTokens, outputTokens, reasoningTokens = 0) {
   };
 }
 
-function writeBenchmarkSummary(directory, { runID, fixtureId, completedAt, model, speed, ttfatMS, agentName = "alpha" }) {
+function writeBenchmarkSummary(directory, { runID, fixtureId, completedAt, model, speed, ttfatMS, charsPerSecond = null, agentName = "alpha" }) {
   mkdirSync(directory, { recursive: true });
   writeFileSync(join(directory, "summary.json"), `${JSON.stringify({
     schemaVersion: 1,
@@ -684,6 +715,9 @@ function writeBenchmarkSummary(directory, { runID, fixtureId, completedAt, model
       latencyMS: { count: 3, p50: 2_000, p90: 2_100, min: 1_900, max: 2_100 },
       postFirstTokenTPS: { count: 3, p50: speed, p90: speed, min: speed, max: speed },
       endToEndTPS: { count: 3, p50: speed / 2, p90: speed / 2, min: speed / 2, max: speed / 2 },
+      visibleCharactersPerSecond: charsPerSecond === null
+        ? { count: 0, p50: null, p90: null, min: null, max: null }
+        : { count: 3, p50: charsPerSecond, p90: charsPerSecond, min: charsPerSecond, max: charsPerSecond },
     }],
   })}\n`);
 }
