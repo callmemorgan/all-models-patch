@@ -264,6 +264,63 @@ test("aa-long-v1 minOutputTokens honors 250 threshold", () => {
   assert(short.excludedReasons.includes("short_output"));
 });
 
+test("aa-story-v1 validates on character floor instead of line format", () => {
+  const fixture = getFixture("aa-story-v1");
+  assert.equal(fixture.expectedLines, null);
+  const longProse = "Maya and her dinosaur walked the ridge at dawn. ".repeat(120);
+  assert.equal(validateFixtureOutput(longProse, "aa-story-v1").ok, true);
+  assert.equal(validateFixtureOutput("A short refusal.", "aa-story-v1").ok, false);
+
+  const sample = buildSample({
+    runID: ids[0], benchmarkID: ids[1], agentName: "alpha", configuredModel: "alias", phase: "measured", round: 1, ordinal: 1,
+    processResult: processResult({ visibleCharacters: [...longProse].length, visibleLines: 1, formatOK: true }),
+    usage: usageEnvelope(ids[1], 2, 1200),
+    timestamp: new Date("2026-07-20T12:00:00Z"),
+    fixture,
+  });
+  assert.equal(sample.valid, true);
+  assert.equal(sample.metrics.outputTokens, 1200);
+
+  const short = buildSample({
+    runID: ids[0], benchmarkID: ids[2], agentName: "alpha", configuredModel: "alias", phase: "measured", round: 1, ordinal: 1,
+    processResult: processResult({ visibleLines: 1, formatOK: true }),
+    usage: usageEnvelope(ids[2], 2, 500),
+    timestamp: new Date("2026-07-20T12:00:00Z"),
+    fixture,
+  });
+  assert.equal(short.valid, false);
+  assert(short.excludedReasons.includes("short_output"));
+});
+
+test("free-form fixtures rank the summary on chars per second", () => {
+  const fixture = getFixture("aa-story-v1");
+  const sample = (agentName, benchmarkID, charsPerSecondWindowMS) => buildSample({
+    runID: ids[0], benchmarkID, agentName, configuredModel: "alias", phase: "measured", round: 1, ordinal: 1,
+    processResult: processResult({
+      visibleCharacters: 9000,
+      visibleLines: 1,
+      formatOK: true,
+      firstContentMS: 1000,
+      lastContentMS: 1000 + charsPerSecondWindowMS,
+    }),
+    usage: usageEnvelope(benchmarkID, 2, 1200),
+    timestamp: new Date("2026-07-20T12:00:00Z"),
+    fixture,
+  });
+  const samples = [sample("slow", ids[1], 9000), sample("fast", ids[2], 3000)];
+  const summary = summarizeRun({
+    runID: ids[0], seed: ids[0],
+    startedAt: new Date("2026-07-20T12:00:00Z"), completedAt: new Date("2026-07-20T12:10:00Z"),
+    outputDirectory: "/tmp/out", options: { warmups: 1, runs: 1 },
+    selectedAgents: [["slow", "alias"], ["fast", "alias"]],
+    samples, interrupted: false, fixture,
+  });
+  assert.deepEqual(summary.agents.map((agent) => agent.name), ["fast", "slow"]);
+  assert.equal(summary.agents[0].visibleCharactersPerSecond.p50, 3000);
+  const markdown = formatBenchmarkMarkdown(summary);
+  assert.match(markdown, /Chars\/s p50\/p90/);
+});
+
 test("fixture selection runs aa-long-v1 with distinct prompt hash", async () => {
   const home = benchmarkHome();
   const output = join(home, "artifacts-aa");

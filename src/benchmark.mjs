@@ -18,12 +18,15 @@ NNN benchmark response calibration token
 Replace NNN with the integer zero-padded to three digits, beginning with 001 and ending with 256.
 Do not use a code fence, heading, introduction, conclusion, tool, or commentary.`;
 
-function buildAaLongPrompt() {
-  const paragraphs = Array.from({ length: 250 }, (_, index) => {
+function buildAaLongPreamble() {
+  return Array.from({ length: 250 }, (_, index) => {
     const n = String(index + 1).padStart(3, "0");
     return `Paragraph ${n}: This is deterministic filler text for Artificial Analysis style long-context calibration. The content is fixed so hashes stay stable across builds and machines. Token packing line ${n} repeats controlled wording for density.`;
   }).join("\n\n");
-  return `${paragraphs}
+}
+
+function buildAaLongPrompt() {
+  return `${buildAaLongPreamble()}
 
 After the preceding context, produce exactly 48 lines and nothing else.
 For each integer from 1 through 48, output one line in ascending order using this exact format:
@@ -32,13 +35,20 @@ Replace NN with the integer zero-padded to two digits, beginning with 01 and end
 Do not use a code fence, heading, introduction, conclusion, tool, or commentary.`;
 }
 
-function freezeFixture(id, prompt, { minOutputTokens, expectedLines, linePadWidth }) {
+function buildAaStoryPrompt() {
+  return `${buildAaLongPreamble()}
+
+After the preceding context, write a long narrative story about a girl and her dinosaur in which an emotionally compelling plot unfolds. Write at least 1500 words of continuous prose. Do not use a code fence, tool, or commentary about the task itself — output only the story.`;
+}
+
+function freezeFixture(id, prompt, { minOutputTokens, expectedLines = null, linePadWidth = null, minVisibleCharacters = null }) {
   return Object.freeze({
     id,
     prompt,
     minOutputTokens,
     expectedLines,
     linePadWidth,
+    minVisibleCharacters,
     sha256: createHash("sha256").update(prompt).digest("hex"),
   });
 }
@@ -57,6 +67,15 @@ export const FIXTURES = Object.freeze({
     minOutputTokens: 250,
     expectedLines: 48,
     linePadWidth: 2,
+  }),
+  // Throughput fixture: free-form long prose so the decode window is large and
+  // sustained. No format contract — identical text tokenizes to 291..590 tokens
+  // depending on provider, so cross-model speed must rank on chars/s, not tok/s.
+  // 1500 words ≈ 8000+ visible characters; the floor rejects refusals and
+  // truncations while tolerating models that undershoot the word target.
+  "aa-story-v1": freezeFixture("aa-story-v1", buildAaStoryPrompt(), {
+    minOutputTokens: 800,
+    minVisibleCharacters: 5000,
   }),
 });
 
@@ -438,6 +457,9 @@ export function validateFixtureOutput(text, fixtureId = BENCHMARK_FIXTURE_ID) {
   const fixture = getFixture(fixtureId);
   const normalized = text.endsWith("\n") ? text.slice(0, -1) : text;
   const lines = normalized ? normalized.split("\n") : [];
+  if (fixture.expectedLines === null) {
+    return { ok: [...text].length >= (fixture.minVisibleCharacters ?? 1), lineCount: lines.length };
+  }
   if (lines.length !== fixture.expectedLines) return { ok: false, lineCount: lines.length };
   for (let index = 0; index < lines.length; index += 1) {
     const expected = `${String(index + 1).padStart(fixture.linePadWidth, "0")} benchmark response calibration token`;
@@ -519,6 +541,8 @@ export function buildSample({ runID, benchmarkID, agentName, configuredModel, ph
       error: usage.error ?? null,
     },
     metrics: {
+      outputTokens: selected ? outputTokens : null,
+      reasoningTokens: selected ? Number(selected?.token_breakdown?.output?.reasoning_tokens ?? selected?.tokens?.reasoning_tokens ?? 0) : null,
       ttftMS: selected ? ttftMS : null,
       ttfatMS,
       latencyMS: selected ? latencyMS : null,
@@ -560,9 +584,14 @@ export function summarizeRun({ runID, seed, startedAt, completedAt, outputDirect
       postFirstTokenTPS: distribution(valid.map((sample) => sample.metrics.postFirstTokenTPS)),
       endToEndTPS: distribution(valid.map((sample) => sample.metrics.endToEndTPS)),
       visibleCharactersPerSecond: distribution(valid.map((sample) => sample.metrics.visibleCharactersPerSecond)),
+      outputTokens: distribution(valid.map((sample) => sample.metrics.outputTokens)),
+      reasoningTokens: distribution(valid.map((sample) => sample.metrics.reasoningTokens)),
     };
   });
-  agents.sort((a, b) => (b.postFirstTokenTPS.p50 ?? -1) - (a.postFirstTokenTPS.p50 ?? -1));
+  // Free-form fixtures have no shared output text, so provider-tokenizer tok/s
+  // is not comparable across models; rank on tokenizer-neutral chars/s instead.
+  const rankKey = fixture.expectedLines === null ? "visibleCharactersPerSecond" : "postFirstTokenTPS";
+  agents.sort((a, b) => (b[rankKey].p50 ?? -1) - (a[rankKey].p50 ?? -1));
   const incomplete = interrupted || Boolean(aborted) || agents.some((agent) => agent.validSamples === 0);
   return {
     schemaVersion: BENCHMARK_SCHEMA_VERSION,
@@ -591,11 +620,11 @@ export function formatBenchmarkMarkdown(summary) {
     `Samples: ${summary.sampleCount}  `,
     `Artifacts: \`${summary.outputDirectory}\``,
     "",
-    "| Agent | Concrete route | Valid | TTFT p50/p90 | TTFAT p50/p90 | Decode tok/s p50/p90 | Wall tok/s p50/p90 | Format | Retries |",
-    "|---|---|---:|---:|---:|---:|---:|---:|---:|",
+    "| Agent | Concrete route | Valid | TTFT p50/p90 | TTFAT p50/p90 | Chars/s p50/p90 | Decode tok/s p50/p90 | Reasoning tok p50 | Format | Retries |",
+    "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
   ];
   for (const agent of summary.agents) {
-    lines.push(`| ${agent.name} | ${agent.routes.join(", ") || "—"} | ${agent.validSamples}/${agent.measuredSamples} | ${formatPair(agent.ttftMS, " ms")} | ${formatPair(agent.ttfatMS, " ms")} | ${formatPair(agent.postFirstTokenTPS)} | ${formatPair(agent.endToEndTPS)} | ${agent.formatPasses}/${agent.measuredSamples} | ${agent.retries} |`);
+    lines.push(`| ${agent.name} | ${agent.routes.join(", ") || "—"} | ${agent.validSamples}/${agent.measuredSamples} | ${formatPair(agent.ttftMS, " ms")} | ${formatPair(agent.ttfatMS, " ms")} | ${formatPair(agent.visibleCharactersPerSecond)} | ${formatPair(agent.postFirstTokenTPS)} | ${formatScalar(agent.reasoningTokens?.p50 ?? null)} | ${agent.formatPasses}/${agent.measuredSamples} | ${agent.retries} |`);
   }
   if (summary.interrupted) lines.push("", "Run interrupted; artifacts contain partial results.");
   if (summary.aborted) lines.push("", `Run aborted: ${summary.aborted}. Artifacts contain partial results.`);
