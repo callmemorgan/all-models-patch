@@ -145,3 +145,17 @@ test("rejects support-pack paths that escape the signed catalog root", () => {
   invalid.packs[0].path = "../credentials.json";
   assert.throws(() => validateSupportCatalog(invalid), /escapes support root/);
 });
+
+// Commit 607f5c8 advanced the catalog sequence without advancing the manager
+// version. maybeSelfUpdate rejects that pairing, so a release cut at that
+// commit would have made the catalog unreachable for every existing install.
+test("catalog release sequence and manager version advance together", () => {
+  const packageVersion = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
+  assert.equal(
+    catalog.managerVersion,
+    packageVersion,
+    "catalog managerVersion drifted from package.json; self-update compares the two",
+  );
+  assert.equal(Number.isSafeInteger(catalog.releaseSequence), true);
+  assert(catalog.releaseSequence >= 1);
+});

@@ -35,7 +35,7 @@ test("maps every gateway model family to its provider attribution email", () => 
     ["claude-fable-5", "noreply@anthropic.com"],
     ["gpt-5.6-sol", "noreply@openai.com"],
     ["codex-auto-review", "noreply@openai.com"],
-    ["gemini-3.5-flash-low", "gemini-code-assist[bot]@users.noreply.github.com"],
+    ["gemini-3.6-flash-high", "gemini-code-assist[bot]@users.noreply.github.com"],
     ["grok-4.5", "grok@x.ai"],
     ["kimi-k2.7-code-highspeed", "noreply@moonshot.ai"],
     ["minimax-m3", "noreply@minimax.io"],
