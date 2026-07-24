@@ -17,6 +17,7 @@ import {
   runBenchmark,
   selectAgents,
   summarizeRun,
+  validateBenchmarkUsagePayload,
   validateFixtureOutput,
 } from "../src/benchmark.mjs";
 
@@ -115,6 +116,8 @@ test("sample metrics use authoritative proxy timing and exclude warmups", () => 
   assert.equal(sample.metrics.endToEndTPS, 333.33);
   assert.equal(sample.telemetry.attempts.length, 1);
   assert.equal(sample.telemetry.retryCount, 0);
+  assert.equal(sample.telemetry.accountingVersion, 2);
+  assert.equal(sample.telemetry.accountingQuality, "complete");
   assert.equal(JSON.stringify(sample).includes(fixtureOutput), false);
 
   const warmup = buildSample({
@@ -141,6 +144,7 @@ test("sample selection ignores smaller successful auxiliary generations", () => 
     latency_ms: 300,
     ttft_ms: 100,
     tokens: { input_tokens: 20, output_tokens: 20, reasoning_tokens: 0, total_tokens: 40 },
+    token_breakdown: canonicalBreakdown(20, 20),
   });
   const sample = buildSample({
     runID: ids[0], benchmarkID: ids[1], agentName: "alpha", configuredModel: "alias", phase: "measured", round: 1, ordinal: 1,
@@ -149,6 +153,37 @@ test("sample selection ignores smaller successful auxiliary generations", () => 
   assert.equal(sample.telemetry.recordCount, 2);
   assert.equal(sample.telemetry.retryCount, 0);
   assert.equal(sample.telemetry.selectedAttempt.tokens.output_tokens, 1000);
+});
+
+test("telemetry accepts rollback schema 1 and validates canonical schema 2", () => {
+  const legacy = usageEnvelope(ids[1], 1);
+  assert.equal(validateBenchmarkUsagePayload(legacy, ids[1]), legacy);
+
+  const canonical = usageEnvelope(ids[2]);
+  assert.equal(validateBenchmarkUsagePayload(canonical, ids[2]), canonical);
+
+  const malformed = structuredClone(canonical);
+  malformed.records[0].token_breakdown.output.total_tokens += 1;
+  assert.throws(
+    () => validateBenchmarkUsagePayload(malformed, ids[2]),
+    /invalid benchmark telemetry/,
+  );
+});
+
+test("incomplete canonical accounting excludes only that benchmark sample", () => {
+  const usage = usageEnvelope(ids[1]);
+  usage.records[0].token_breakdown = {
+    ...canonicalBreakdown(0, 0),
+    quality: "unclassified",
+    total_tokens: 1020,
+    unclassified_tokens: 1020,
+  };
+  const sample = buildSample({
+    runID: ids[0], benchmarkID: ids[1], agentName: "alpha", configuredModel: "alias", phase: "measured", round: 1, ordinal: 1,
+    processResult: processResult(), usage, timestamp: new Date("2026-07-20T12:00:00Z"),
+  });
+  assert.equal(sample.valid, false);
+  assert(sample.excludedReasons.includes("incomplete_token_accounting"));
 });
 
 test("summary uses nearest-rank distributions and truthful partial exit codes", () => {
@@ -343,22 +378,47 @@ function processResult() {
   };
 }
 
-function usageEnvelope(id) {
+function usageEnvelope(id, schemaVersion = 2) {
+  const record = {
+    provider: "codex",
+    executor_type: "responses",
+    model: "concrete-model",
+    alias: "alias",
+    latency_ms: 2000,
+    ttft_ms: 500,
+    generate: true,
+    failed: false,
+    status_code: 200,
+    tokens: { input_tokens: 20, output_tokens: 1000, reasoning_tokens: 0, total_tokens: 1020 },
+  };
+  if (schemaVersion === 2) {
+    record.accounting_version = 2;
+    record.token_breakdown = canonicalBreakdown(20, 1000);
+  }
   return {
-    schema_version: 1,
+    schema_version: schemaVersion,
     benchmark_id: id,
-    records: [{
-      provider: "codex",
-      executor_type: "responses",
-      model: "concrete-model",
-      alias: "alias",
-      latency_ms: 2000,
-      ttft_ms: 500,
-      generate: true,
-      failed: false,
-      status_code: 200,
-      tokens: { input_tokens: 20, output_tokens: 1000, reasoning_tokens: 0, total_tokens: 1020 },
-    }],
+    records: [record],
+  };
+}
+
+function canonicalBreakdown(inputTokens, outputTokens, reasoningTokens = 0) {
+  return {
+    schema_version: 2,
+    quality: "complete",
+    total_tokens: inputTokens + outputTokens,
+    input: {
+      total_tokens: inputTokens,
+      uncached_tokens: inputTokens,
+      cache_read_tokens: 0,
+      cache_write_tokens: 0,
+    },
+    output: {
+      total_tokens: outputTokens,
+      non_reasoning_tokens: outputTokens - reasoningTokens,
+      reasoning_tokens: reasoningTokens,
+    },
+    unclassified_tokens: 0,
   };
 }
 

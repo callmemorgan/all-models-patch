@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 
 export const BENCHMARK_SCHEMA_VERSION = 1;
+export const PROXY_TELEMETRY_SCHEMA_VERSION = 2;
 export const BENCHMARK_FIXTURE_ID = "raw-v1";
 export const BENCHMARK_HEADER = "X-Claude-All-Benchmark-ID";
 export const DEFAULT_WARMUPS = 1;
@@ -139,12 +140,12 @@ export async function runBenchmark(options, dependencies = {}) {
         }
         let usage;
         if (interrupted) {
-          usage = { schema_version: 1, benchmark_id: benchmarkID, records: [], error: "benchmark interrupted" };
+          usage = { schema_version: PROXY_TELEMETRY_SCHEMA_VERSION, benchmark_id: benchmarkID, records: [], error: "benchmark interrupted" };
         } else {
           try {
             usage = await pollBenchmarkUsage(proxyBaseURL, clientKey, benchmarkID, deps.fetch);
           } catch (error) {
-            usage = { schema_version: 1, benchmark_id: benchmarkID, records: [], error: error.message };
+            usage = { schema_version: PROXY_TELEMETRY_SCHEMA_VERSION, benchmark_id: benchmarkID, records: [], error: error.message };
           }
         }
         const sample = buildSample({
@@ -392,6 +393,15 @@ export function buildSample({ runID, benchmarkID, agentName, configuredModel, ph
   if (!selected || selected.failed) reasons.push("generation_failed");
   if (outputTokens < 512) reasons.push("short_output");
   if (!(decodeWindowMS > 0)) reasons.push("invalid_timing");
+  const accountingVersion = usage.schema_version === 2
+    ? Number(selected?.accounting_version ?? 0)
+    : 1;
+  const accountingQuality = usage.schema_version === 2
+    ? String(selected?.token_breakdown?.quality ?? "")
+    : "legacy";
+  if (selected && usage.schema_version === 2 && accountingQuality !== "complete") {
+    reasons.push("incomplete_token_accounting");
+  }
   // A response that does not reproduce the fixture exactly did different work,
   // so its timings are not comparable and must stay out of the distributions.
   if (!processResult.formatOK) reasons.push("format_failed");
@@ -428,6 +438,8 @@ export function buildSample({ runID, benchmarkID, agentName, configuredModel, ph
       retryCount: generated.filter((record) => record.failed).length,
       attempts: generated,
       selectedAttempt: selected,
+      accountingVersion,
+      accountingQuality,
       error: usage.error ?? null,
     },
     metrics: {
@@ -460,6 +472,11 @@ export function summarizeRun({ runID, seed, startedAt, completedAt, outputDirect
       validSamples: valid.length,
       formatPasses: measured.filter((sample) => sample.output.formatOK).length,
       retries: measured.reduce((count, sample) => count + sample.telemetry.retryCount, 0),
+      accounting: {
+        completeSamples: measured.filter((sample) => sample.telemetry.accountingQuality === "complete").length,
+        legacySamples: measured.filter((sample) => sample.telemetry.accountingQuality === "legacy").length,
+        incompleteSamples: measured.filter((sample) => !["complete", "legacy"].includes(sample.telemetry.accountingQuality)).length,
+      },
       ttftMS: distribution(valid.map((sample) => sample.metrics.ttftMS)),
       latencyMS: distribution(valid.map((sample) => sample.metrics.latencyMS)),
       postFirstTokenTPS: distribution(valid.map((sample) => sample.metrics.postFirstTokenTPS)),
@@ -570,11 +587,7 @@ async function pollBenchmarkUsage(baseURL, clientKey, benchmarkID, fetchImpl) {
     }
     if (response?.ok) {
       const payload = await response.json();
-      if (payload.schema_version !== 1 || payload.benchmark_id !== benchmarkID || !Array.isArray(payload.records)
-          || !payload.records.every((record) => record !== null && typeof record === "object")) {
-        throw new Error(`invalid benchmark telemetry response for ${benchmarkID}`);
-      }
-      return payload;
+      return validateBenchmarkUsagePayload(payload, benchmarkID);
     }
     if (response && response.status !== 404) {
       throw new Error(`benchmark telemetry request failed with HTTP ${response.status}`);
@@ -583,6 +596,48 @@ async function pollBenchmarkUsage(baseURL, clientKey, benchmarkID, fetchImpl) {
     await new Promise((resolvePromise) => setTimeout(resolvePromise, delayMS));
     delayMS = Math.min(1000, delayMS * 2);
   }
+}
+
+export function validateBenchmarkUsagePayload(payload, benchmarkID) {
+  if (![1, PROXY_TELEMETRY_SCHEMA_VERSION].includes(payload?.schema_version) ||
+      payload.benchmark_id !== benchmarkID ||
+      !Array.isArray(payload.records) ||
+      !payload.records.every((record) => record !== null && typeof record === "object")) {
+    throw new Error(`invalid benchmark telemetry response for ${benchmarkID}`);
+  }
+  if (payload.schema_version === PROXY_TELEMETRY_SCHEMA_VERSION &&
+      !payload.records.every(validCanonicalAccountingRecord)) {
+    throw new Error(`invalid benchmark telemetry response for ${benchmarkID}`);
+  }
+  return payload;
+}
+
+function validCanonicalAccountingRecord(record) {
+  if (record.accounting_version !== 2) return false;
+  const breakdown = record.token_breakdown;
+  if (!breakdown || breakdown.schema_version !== 2 ||
+      !["complete", "inconsistent", "unclassified"].includes(breakdown.quality)) {
+    return false;
+  }
+  const values = [
+    breakdown.total_tokens,
+    breakdown.unclassified_tokens,
+    breakdown.input?.total_tokens,
+    breakdown.input?.uncached_tokens,
+    breakdown.input?.cache_read_tokens,
+    breakdown.input?.cache_write_tokens,
+    breakdown.output?.total_tokens,
+    breakdown.output?.non_reasoning_tokens,
+    breakdown.output?.reasoning_tokens,
+  ];
+  if (!values.every((value) => Number.isSafeInteger(value) && value >= 0)) return false;
+  if (breakdown.input.total_tokens !== breakdown.input.uncached_tokens +
+      breakdown.input.cache_read_tokens + breakdown.input.cache_write_tokens) return false;
+  if (breakdown.output.total_tokens !== breakdown.output.non_reasoning_tokens +
+      breakdown.output.reasoning_tokens) return false;
+  if (breakdown.total_tokens !== breakdown.input.total_tokens +
+      breakdown.output.total_tokens + breakdown.unclassified_tokens) return false;
+  return breakdown.quality !== "complete" || breakdown.unclassified_tokens === 0;
 }
 
 function appendBenchmarkHeader(existing, benchmarkID) {
