@@ -1,0 +1,13 @@
+{
+  "name": "all-models-patch",
+  "owner": {
+    "name": "callmemorgan"
+  },
+  "plugins": [
+    {
+      "name": "claude-all-swarm",
+      "source": "./plugin",
+      "description": "Kimi-inspired swarm orchestration, raw response benchmarking, and model-routing recommendations for claude-all"
+    }
+  ]
+}
