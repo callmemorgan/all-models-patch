@@ -71,7 +71,7 @@ export function validateShippedModelConfigs(toolRoot) {
     if (!isPlainObject(profile) || !Array.isArray(profile.providers) || !isPlainObject(profile.ratings)) {
       throw new Error(`invalid shipped recommendation profile: ${name}`);
     }
-    for (const dimension of ["capability", "taste", "publicRating", "coachability", "efficiency"]) {
+    for (const dimension of ["aaCoding", "aaAgentic", "aaIntelligence", "taste", "coachability", "efficiency"]) {
       const rating = profile.ratings[dimension];
       const validValue = rating?.value === null || (Number.isFinite(rating?.value) && rating.value >= 0 && rating.value <= 100);
       if (!validValue || !Number.isFinite(rating?.confidence) || rating.confidence < 0 || rating.confidence > 1 || typeof rating.source !== "string") {

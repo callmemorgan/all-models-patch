@@ -84,10 +84,11 @@ test("evidence opens in a centered bounded desktop modal with a narrow-screen sh
 test("every recommendation slider exposes accessible factor help", () => {
   const html = renderDashboardHTML({ token: "token" });
   const helpPhrases = [
-    "task-fit and capability evidence",
+    "Artificial Analysis Coding Index: agentic terminal engineering",
+    "Artificial Analysis Agentic Index: long-horizon tool use",
+    "Artificial Analysis Intelligence Index: full composite including reasoning",
     "personal judgment of polish",
     "time to first token plus post-first-token throughput",
-    "sourced numeric external ratings",
     "valid completion share",
     "tightest applicable live quota window",
     "usable pre-compaction runway and never excludes a profile",

@@ -2,369 +2,1368 @@
   "schemaVersion": 1,
   "profiles": {
     "fable-5": {
-      "providers": ["claude"],
-      "quotaWindowIds": { "claude": ["5h", "weekly", "model-fable"] },
-      "roles": ["engineering", "synthesis"],
+      "providers": [
+        "claude"
+      ],
+      "quotaWindowIds": {
+        "claude": [
+          "5h",
+          "weekly",
+          "model-fable"
+        ]
+      },
+      "roles": [
+        "engineering",
+        "synthesis"
+      ],
       "ratings": {
-        "capability": { "value": 100, "confidence": 0.9, "source": "personal-agent-guidance" },
-        "taste": { "value": 100, "confidence": 0.9, "source": "personal-agent-guidance" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": 10, "confidence": 0.8, "source": "personal-agent-guidance-highest-burn" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": 100,
+          "confidence": 0.9,
+          "source": "personal-agent-guidance"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": 10,
+          "confidence": 0.8,
+          "source": "personal-agent-guidance-highest-burn"
+        }
       },
       "caveats": []
     },
     "opus-4-8": {
-      "providers": ["claude"],
-      "quotaWindowIds": { "claude": ["5h", "weekly"] },
-      "roles": ["implementation", "debugging", "review"],
+      "providers": [
+        "claude"
+      ],
+      "quotaWindowIds": {
+        "claude": [
+          "5h",
+          "weekly"
+        ]
+      },
+      "roles": [
+        "implementation",
+        "debugging",
+        "review"
+      ],
       "ratings": {
-        "capability": { "value": 90, "confidence": 0.9, "source": "personal-agent-guidance" },
-        "taste": { "value": 90, "confidence": 0.9, "source": "personal-agent-guidance" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": 90,
+          "confidence": 0.9,
+          "source": "personal-agent-guidance"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     },
     "sonnet-5": {
-      "providers": ["claude"],
-      "quotaWindowIds": { "claude": ["5h", "weekly"] },
-      "roles": ["implementation", "testing", "refactoring", "documentation"],
+      "providers": [
+        "claude"
+      ],
+      "quotaWindowIds": {
+        "claude": [
+          "5h",
+          "weekly"
+        ]
+      },
+      "roles": [
+        "implementation",
+        "testing",
+        "refactoring",
+        "documentation"
+      ],
       "ratings": {
-        "capability": { "value": 60, "confidence": 0.85, "source": "personal-agent-guidance" },
-        "taste": { "value": 80, "confidence": 0.85, "source": "personal-agent-guidance" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": 85, "confidence": 0.7, "source": "personal-agent-guidance-cheap" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": 80,
+          "confidence": 0.85,
+          "source": "personal-agent-guidance"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": 85,
+          "confidence": 0.7,
+          "source": "personal-agent-guidance-cheap"
+        }
       },
       "caveats": []
     },
     "opus-4-7": {
-      "providers": ["claude"],
-      "quotaWindowIds": { "claude": ["5h", "weekly"] },
-      "roles": ["implementation", "review"],
+      "providers": [
+        "claude"
+      ],
+      "quotaWindowIds": {
+        "claude": [
+          "5h",
+          "weekly"
+        ]
+      },
+      "roles": [
+        "implementation",
+        "review"
+      ],
       "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     },
     "sonnet-4-6": {
-      "providers": ["claude", "antigravity"],
+      "providers": [
+        "claude",
+        "antigravity"
+      ],
       "quotaWindowIds": {
-        "claude": ["5h", "weekly"],
-        "antigravity": ["claude-gpt-5h"]
+        "claude": [
+          "5h",
+          "weekly"
+        ],
+        "antigravity": [
+          "claude-gpt-5h"
+        ]
       },
-      "roles": ["implementation", "review"],
+      "roles": [
+        "implementation",
+        "review"
+      ],
       "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
-      "caveats": ["May consume either Claude or Antigravity quota depending on the selected route."]
+      "caveats": [
+        "May consume either Claude or Antigravity quota depending on the selected route."
+      ]
     },
     "haiku-4-5": {
-      "providers": ["claude"],
-      "quotaWindowIds": { "claude": ["5h", "weekly"] },
-      "roles": ["implementation", "analysis"],
-      "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+      "providers": [
+        "claude"
+      ],
+      "quotaWindowIds": {
+        "claude": [
+          "5h",
+          "weekly"
+        ]
       },
-      "caveats": ["Best suited to bounded tasks."]
+      "roles": [
+        "implementation",
+        "analysis"
+      ],
+      "ratings": {
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
+      },
+      "caveats": [
+        "Best suited to bounded tasks."
+      ]
     },
     "gpt-5-6-sol": {
-      "providers": ["codex"],
-      "quotaWindowIds": { "codex": ["weekly"] },
-      "roles": ["implementation", "cross-provider-review"],
+      "providers": [
+        "codex"
+      ],
+      "quotaWindowIds": {
+        "codex": [
+          "weekly"
+        ]
+      },
+      "roles": [
+        "implementation",
+        "cross-provider-review"
+      ],
       "ratings": {
-        "capability": { "value": 90, "confidence": 0.85, "source": "personal-agent-guidance" },
-        "taste": { "value": 90, "confidence": 0.85, "source": "personal-agent-guidance" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": 90,
+          "confidence": 0.85,
+          "source": "personal-agent-guidance"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     },
     "gpt-5-6-terra": {
-      "providers": ["codex"],
-      "quotaWindowIds": { "codex": ["weekly"] },
-      "roles": ["implementation", "specification-review"],
+      "providers": [
+        "codex"
+      ],
+      "quotaWindowIds": {
+        "codex": [
+          "weekly"
+        ]
+      },
+      "roles": [
+        "implementation",
+        "specification-review"
+      ],
       "ratings": {
-        "capability": { "value": 70, "confidence": 0.8, "source": "personal-agent-guidance" },
-        "taste": { "value": 80, "confidence": 0.8, "source": "personal-agent-guidance" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": 80,
+          "confidence": 0.8,
+          "source": "personal-agent-guidance"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     },
     "gpt-5-6-luna": {
-      "providers": ["codex"],
-      "quotaWindowIds": { "codex": ["weekly"] },
-      "roles": ["frontend", "interface", "copy", "api-polish"],
+      "providers": [
+        "codex"
+      ],
+      "quotaWindowIds": {
+        "codex": [
+          "weekly"
+        ]
+      },
+      "roles": [
+        "frontend",
+        "interface",
+        "copy",
+        "api-polish"
+      ],
       "ratings": {
-        "capability": { "value": 70, "confidence": 0.8, "source": "personal-agent-guidance" },
-        "taste": { "value": 80, "confidence": 0.8, "source": "personal-agent-guidance" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": 90, "confidence": 0.8, "source": "personal-agent-guidance-cost-1" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": 80,
+          "confidence": 0.8,
+          "source": "personal-agent-guidance"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": 90,
+          "confidence": 0.8,
+          "source": "personal-agent-guidance-cost-1"
+        }
       },
       "caveats": []
     },
     "gpt-5-5": {
-      "providers": ["codex"],
-      "quotaWindowIds": { "codex": ["weekly"] },
-      "roles": ["coding", "research", "engineering"],
+      "providers": [
+        "codex"
+      ],
+      "quotaWindowIds": {
+        "codex": [
+          "weekly"
+        ]
+      },
+      "roles": [
+        "coding",
+        "research",
+        "engineering"
+      ],
       "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     },
     "gpt-5-4": {
-      "providers": ["codex"],
-      "quotaWindowIds": { "codex": ["weekly"] },
-      "roles": ["coding", "engineering"],
+      "providers": [
+        "codex"
+      ],
+      "quotaWindowIds": {
+        "codex": [
+          "weekly"
+        ]
+      },
+      "roles": [
+        "coding",
+        "engineering"
+      ],
       "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     },
     "gpt-5-4-mini": {
-      "providers": ["codex"],
-      "quotaWindowIds": { "codex": ["weekly"] },
-      "roles": ["coding", "analysis"],
-      "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+      "providers": [
+        "codex"
+      ],
+      "quotaWindowIds": {
+        "codex": [
+          "weekly"
+        ]
       },
-      "caveats": ["Best suited to bounded tasks."]
+      "roles": [
+        "coding",
+        "analysis"
+      ],
+      "ratings": {
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
+      },
+      "caveats": [
+        "Best suited to bounded tasks."
+      ]
     },
     "gpt-5-3-codex-spark": {
-      "providers": ["codex"],
-      "quotaWindowIds": { "codex": ["weekly"] },
-      "roles": ["coding", "iteration"],
+      "providers": [
+        "codex"
+      ],
+      "quotaWindowIds": {
+        "codex": [
+          "weekly"
+        ]
+      },
+      "roles": [
+        "coding",
+        "iteration"
+      ],
       "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     },
     "grok-4-5": {
-      "providers": ["grok"],
-      "quotaWindowIds": { "grok": ["weekly"] },
-      "roles": ["analysis", "implementation", "independent-review", "large-context"],
+      "providers": [
+        "grok"
+      ],
+      "quotaWindowIds": {
+        "grok": [
+          "weekly"
+        ]
+      },
+      "roles": [
+        "analysis",
+        "implementation",
+        "independent-review",
+        "large-context"
+      ],
       "ratings": {
-        "capability": { "value": 80, "confidence": 0.8, "source": "personal-agent-guidance" },
-        "taste": { "value": 90, "confidence": 0.8, "source": "personal-agent-guidance" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": 80, "confidence": 0.8, "source": "personal-agent-guidance" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": 90,
+          "confidence": 0.8,
+          "source": "personal-agent-guidance"
+        },
+        "coachability": {
+          "value": 80,
+          "confidence": 0.8,
+          "source": "personal-agent-guidance"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     },
     "grok-4-3": {
-      "providers": ["grok"],
-      "quotaWindowIds": { "grok": ["weekly"] },
-      "roles": ["coding", "independent-review", "large-context"],
+      "providers": [
+        "grok"
+      ],
+      "quotaWindowIds": {
+        "grok": [
+          "weekly"
+        ]
+      },
+      "roles": [
+        "coding",
+        "independent-review",
+        "large-context"
+      ],
       "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     },
     "grok-4-20-reasoning": {
-      "providers": ["grok"],
-      "quotaWindowIds": { "grok": ["weekly"] },
-      "roles": ["reasoning", "engineering", "large-context"],
+      "providers": [
+        "grok"
+      ],
+      "quotaWindowIds": {
+        "grok": [
+          "weekly"
+        ]
+      },
+      "roles": [
+        "reasoning",
+        "engineering",
+        "large-context"
+      ],
       "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     },
     "grok-4-20-non-reasoning": {
-      "providers": ["grok"],
-      "quotaWindowIds": { "grok": ["weekly"] },
-      "roles": ["analysis", "large-context"],
-      "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+      "providers": [
+        "grok"
+      ],
+      "quotaWindowIds": {
+        "grok": [
+          "weekly"
+        ]
       },
-      "caveats": ["Uses the non-reasoning route."]
+      "roles": [
+        "analysis",
+        "large-context"
+      ],
+      "ratings": {
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
+      },
+      "caveats": [
+        "Uses the non-reasoning route."
+      ]
     },
     "kimi-k3": {
-      "providers": ["kimi"],
-      "quotaWindowIds": { "kimi": ["weekly", "limit-1"] },
-      "roles": ["coding", "knowledge-work", "reasoning", "long-horizon"],
+      "providers": [
+        "kimi"
+      ],
+      "quotaWindowIds": {
+        "kimi": [
+          "weekly",
+          "limit-1"
+        ]
+      },
+      "roles": [
+        "coding",
+        "knowledge-work",
+        "reasoning",
+        "long-horizon"
+      ],
       "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": 60, "confidence": 0.6, "source": "personal-agent-guidance-cost-3" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": 60,
+          "confidence": 0.6,
+          "source": "personal-agent-guidance-cost-3"
+        }
       },
       "caveats": []
     },
     "kimi-k2-7-code": {
-      "providers": ["kimi"],
-      "quotaWindowIds": { "kimi": ["weekly", "limit-1"] },
-      "roles": ["coding", "review", "iteration"],
+      "providers": [
+        "kimi"
+      ],
+      "quotaWindowIds": {
+        "kimi": [
+          "weekly",
+          "limit-1"
+        ]
+      },
+      "roles": [
+        "coding",
+        "review",
+        "iteration"
+      ],
       "ratings": {
-        "capability": { "value": 40, "confidence": 0.85, "source": "personal-agent-guidance" },
-        "taste": { "value": 50, "confidence": 0.85, "source": "personal-agent-guidance" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": 90, "confidence": 0.85, "source": "personal-agent-guidance" },
-        "efficiency": { "value": 90, "confidence": 0.8, "source": "personal-agent-guidance-cost-1" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": 50,
+          "confidence": 0.85,
+          "source": "personal-agent-guidance"
+        },
+        "coachability": {
+          "value": 90,
+          "confidence": 0.85,
+          "source": "personal-agent-guidance"
+        },
+        "efficiency": {
+          "value": 90,
+          "confidence": 0.8,
+          "source": "personal-agent-guidance-cost-1"
+        }
       },
       "caveats": []
     },
     "kimi-k2-6": {
-      "providers": ["kimi"],
-      "quotaWindowIds": { "kimi": ["weekly", "limit-1"] },
-      "roles": ["agentic-coding", "reasoning", "long-horizon"],
+      "providers": [
+        "kimi"
+      ],
+      "quotaWindowIds": {
+        "kimi": [
+          "weekly",
+          "limit-1"
+        ]
+      },
+      "roles": [
+        "agentic-coding",
+        "reasoning",
+        "long-horizon"
+      ],
       "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     },
     "kimi-k2-7-code-fast": {
-      "providers": ["kimi"],
-      "quotaWindowIds": { "kimi": ["weekly", "limit-1"] },
-      "roles": ["coding", "review", "iteration"],
+      "providers": [
+        "kimi"
+      ],
+      "quotaWindowIds": {
+        "kimi": [
+          "weekly",
+          "limit-1"
+        ]
+      },
+      "roles": [
+        "coding",
+        "review",
+        "iteration"
+      ],
       "ratings": {
-        "capability": { "value": 40, "confidence": 0.8, "source": "inherits-kimi-k2-7-guidance" },
-        "taste": { "value": 50, "confidence": 0.8, "source": "inherits-kimi-k2-7-guidance" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": 90, "confidence": 0.8, "source": "inherits-kimi-k2-7-guidance" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": 50,
+          "confidence": 0.8,
+          "source": "inherits-kimi-k2-7-guidance"
+        },
+        "coachability": {
+          "value": 90,
+          "confidence": 0.8,
+          "source": "inherits-kimi-k2-7-guidance"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     },
     "gemini-3-6-flash": {
-      "providers": ["antigravity"],
-      "quotaWindowIds": { "antigravity": ["gemini-5h"] },
-      "roles": ["reconnaissance", "mechanical-analysis", "large-context"],
-      "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+      "providers": [
+        "antigravity"
+      ],
+      "quotaWindowIds": {
+        "antigravity": [
+          "gemini-5h"
+        ]
       },
-      "caveats": ["Not yet locally benchmarked; routing guidance is provisional."]
+      "roles": [
+        "reconnaissance",
+        "mechanical-analysis",
+        "large-context"
+      ],
+      "ratings": {
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
+      },
+      "caveats": [
+        "Not yet locally benchmarked; routing guidance is provisional."
+      ]
     },
     "grok-composer-2-5-fast": {
-      "providers": ["grok"],
-      "quotaWindowIds": { "grok": ["weekly"] },
-      "roles": ["coding", "repository-sweep", "iteration"],
-      "ratings": {
-        "capability": { "value": 60, "confidence": 0.85, "source": "personal-agent-guidance" },
-        "taste": { "value": 80, "confidence": 0.85, "source": "personal-agent-guidance" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": 90, "confidence": 0.85, "source": "personal-agent-guidance" },
-        "efficiency": { "value": 90, "confidence": 0.8, "source": "personal-agent-guidance-cost-1" }
+      "providers": [
+        "grok"
+      ],
+      "quotaWindowIds": {
+        "grok": [
+          "weekly"
+        ]
       },
-      "caveats": ["Best suited to bounded repository sweeps."]
+      "roles": [
+        "coding",
+        "repository-sweep",
+        "iteration"
+      ],
+      "ratings": {
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": 80,
+          "confidence": 0.85,
+          "source": "personal-agent-guidance"
+        },
+        "coachability": {
+          "value": 90,
+          "confidence": 0.85,
+          "source": "personal-agent-guidance"
+        },
+        "efficiency": {
+          "value": 90,
+          "confidence": 0.8,
+          "source": "personal-agent-guidance-cost-1"
+        }
+      },
+      "caveats": [
+        "Best suited to bounded repository sweeps."
+      ]
     },
     "minimax-m3": {
-      "providers": ["ollama"],
-      "quotaWindowIds": { "ollama": [] },
-      "roles": ["multimodal", "coding", "repository-analysis", "large-context"],
-      "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+      "providers": [
+        "ollama"
+      ],
+      "quotaWindowIds": {
+        "ollama": []
       },
-      "caveats": ["Ollama Cloud quota is not present in the current quota cache."]
+      "roles": [
+        "multimodal",
+        "coding",
+        "repository-analysis",
+        "large-context"
+      ],
+      "ratings": {
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
+      },
+      "caveats": [
+        "Ollama Cloud quota is not present in the current quota cache."
+      ]
     },
     "glm-5-2": {
-      "providers": ["ollama"],
-      "quotaWindowIds": { "ollama": [] },
-      "roles": ["engineering", "project-analysis", "long-horizon"],
-      "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+      "providers": [
+        "ollama"
+      ],
+      "quotaWindowIds": {
+        "ollama": []
       },
-      "caveats": ["Ollama Cloud quota is not present in the current quota cache."]
+      "roles": [
+        "engineering",
+        "project-analysis",
+        "long-horizon"
+      ],
+      "ratings": {
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
+      },
+      "caveats": [
+        "Ollama Cloud quota is not present in the current quota cache."
+      ]
     },
     "opus-4-6-thinking": {
-      "providers": ["antigravity"],
-      "quotaWindowIds": { "antigravity": ["claude-gpt-5h"] },
-      "roles": ["implementation", "review", "reasoning"],
-      "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+      "providers": [
+        "antigravity"
+      ],
+      "quotaWindowIds": {
+        "antigravity": [
+          "claude-gpt-5h"
+        ]
       },
-      "caveats": ["Uses the Antigravity overflow route."]
+      "roles": [
+        "implementation",
+        "review",
+        "reasoning"
+      ],
+      "ratings": {
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
+      },
+      "caveats": [
+        "Uses the Antigravity overflow route."
+      ]
     },
     "gpt-oss-120b": {
-      "providers": ["antigravity"],
-      "quotaWindowIds": { "antigravity": ["claude-gpt-5h"] },
-      "roles": ["coding", "independent-review"],
+      "providers": [
+        "antigravity"
+      ],
+      "quotaWindowIds": {
+        "antigravity": [
+          "claude-gpt-5h"
+        ]
+      },
+      "roles": [
+        "coding",
+        "independent-review"
+      ],
       "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     },
     "grok-build-0-1": {
-      "providers": ["grok"],
-      "quotaWindowIds": { "grok": ["weekly"] },
-      "roles": ["agentic-coding", "software-engineering"],
+      "providers": [
+        "grok"
+      ],
+      "quotaWindowIds": {
+        "grok": [
+          "weekly"
+        ]
+      },
+      "roles": [
+        "agentic-coding",
+        "software-engineering"
+      ],
       "ratings": {
-        "capability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "taste": { "value": null, "confidence": 0, "source": "not-rated" },
-        "publicRating": { "value": null, "confidence": 0, "source": "not-rated" },
-        "coachability": { "value": null, "confidence": 0, "source": "not-rated" },
-        "efficiency": { "value": null, "confidence": 0, "source": "not-rated" }
+        "aaCoding": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaAgentic": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "aaIntelligence": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "taste": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "coachability": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        },
+        "efficiency": {
+          "value": null,
+          "confidence": 0,
+          "source": "not-rated"
+        }
       },
       "caveats": []
     }

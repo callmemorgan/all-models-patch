@@ -16,6 +16,7 @@ import { renderDashboardHTML } from "./dashboard-assets.mjs";
 import {
   DEFAULT_WEIGHTS,
   contextUtility,
+  migrateLegacyWeights,
   normalizeWeights,
   quotaUtility,
   scoreRecommendations,
@@ -268,10 +269,11 @@ export function recommendProfiles(roster, settings, now = new Date()) {
       compactAtTokens: profile.context?.compactAtTokens,
     });
     const dimensions = {
-      capability: ratingDimension(profile.ratings?.capability),
+      aaCoding: ratingDimension(profile.ratings?.aaCoding),
+      aaAgentic: ratingDimension(profile.ratings?.aaAgentic),
+      aaIntelligence: ratingDimension(profile.ratings?.aaIntelligence),
       taste: ratingDimension(profile.ratings?.taste),
       speed: speedDimension(profile.benchmark),
-      publicRating: ratingDimension(profile.ratings?.publicRating),
       reliability: reliabilityDimension(profile.benchmark),
       quota: quotaDimension(profile.quota, now),
       context: {
@@ -392,7 +394,10 @@ export function deleteDashboardPreset(paths, id) {
 export function readDashboardPresets(paths) {
   return readPresetDocument(paths).presets.map((preset) => ({
     ...preset,
-    settings: validateRecommendationSettings(preset?.settings),
+    settings: validateRecommendationSettings({
+      ...preset?.settings,
+      weights: migrateLegacyWeights(preset?.settings?.weights),
+    }),
   }));
 }
 
@@ -515,16 +520,16 @@ function builtInPresets() {
   return [
     preset("balanced", "Balanced", { ...DEFAULT_WEIGHTS }),
     preset("deep-build", "Deep build", {
-      capability: 30, taste: 20, speed: 5, publicRating: 10, reliability: 15, quota: 5, context: 5, coachability: 5, efficiency: 5,
+      aaCoding: 30, aaAgentic: 6, aaIntelligence: 4, taste: 20, speed: 5, reliability: 15, quota: 5, context: 5, coachability: 5, efficiency: 5,
     }),
     preset("taste-polish", "Taste & polish", {
-      capability: 15, taste: 35, speed: 5, publicRating: 15, reliability: 10, quota: 5, context: 0, coachability: 5, efficiency: 10,
+      aaCoding: 15, aaAgentic: 8, aaIntelligence: 7, taste: 35, speed: 5, reliability: 10, quota: 5, context: 0, coachability: 5, efficiency: 10,
     }),
     preset("fast-recon", "Fast recon", {
-      capability: 10, taste: 5, speed: 35, publicRating: 5, reliability: 15, quota: 10, context: 15, coachability: 0, efficiency: 5,
+      aaCoding: 10, aaAgentic: 3, aaIntelligence: 2, taste: 5, speed: 35, reliability: 15, quota: 10, context: 15, coachability: 0, efficiency: 5,
     }),
     preset("quota-saver", "Quota saver", {
-      capability: 15, taste: 10, speed: 10, publicRating: 5, reliability: 10, quota: 30, context: 5, coachability: 5, efficiency: 10,
+      aaCoding: 15, aaAgentic: 3, aaIntelligence: 2, taste: 10, speed: 10, reliability: 10, quota: 30, context: 5, coachability: 5, efficiency: 10,
     }),
   ];
 }

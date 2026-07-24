@@ -6,6 +6,7 @@ import {
   DIMENSION_LABELS,
   SPEED_COMPARISON_OUTPUT_TOKENS,
   contextUtility,
+  migrateLegacyWeights,
   normalizeWeights,
   quotaUtility,
   scoreRecommendations,
@@ -22,11 +23,35 @@ test("default weights cover every labeled dimension and sum to 100", () => {
 test("normalizes defaults and merges partial saved presets", () => {
   const defaults = normalizeWeights();
   assert.equal(Object.values(defaults).reduce((sum, value) => sum + value, 0), 1);
-  assert.equal(defaults.capability, 0.22);
+  assert.equal(defaults.aaCoding, 0.16);
 
   const partial = normalizeWeights({ speed: 100 });
   assert.equal(partial.speed, 100 / 186);
-  assert.equal(partial.capability, 22 / 186);
+  assert.equal(partial.aaCoding, 16 / 186);
+});
+
+test("migrateLegacyWeights renames capability, drops publicRating, and preserves others", () => {
+  assert.equal(migrateLegacyWeights(null), null);
+  assert.equal(migrateLegacyWeights(undefined), undefined);
+  assert.equal(migrateLegacyWeights(42), 42);
+  assert.deepEqual(migrateLegacyWeights(["x"]), ["x"]);
+
+  const input = { capability: 20, publicRating: 8, taste: 18, speed: 14 };
+  const migrated = migrateLegacyWeights(input);
+  assert.deepEqual(migrated, { aaCoding: 20, taste: 18, speed: 14 });
+  assert.deepEqual(input, { capability: 20, publicRating: 8, taste: 18, speed: 14 });
+  assert.equal(Object.hasOwn(migrated, "capability"), false);
+  assert.equal(Object.hasOwn(migrated, "publicRating"), false);
+
+  assert.deepEqual(
+    migrateLegacyWeights({ capability: 20, aaCoding: 30, publicRating: 5, taste: 10 }),
+    { aaCoding: 50, taste: 10 },
+  );
+  assert.deepEqual(
+    migrateLegacyWeights({ capability: 80, aaCoding: 40 }),
+    { aaCoding: 100 },
+  );
+  assert.deepEqual(migrateLegacyWeights({ taste: 12, efficiency: 5 }), { taste: 12, efficiency: 5 });
 });
 
 test("rejects invalid, unknown, and all-zero weights", () => {
@@ -231,7 +256,7 @@ test("returns profile- and dimension-level hard failures unranked, never as elig
   const results = scoreRecommendations([
     { id: "available", dimensions: { taste: 50 } },
     { id: "route-down", eligible: false, reasons: ["route unavailable"], dimensions: { taste: 100 } },
-    { id: "privacy-mismatch", dimensions: { capability: { value: 100, confidence: 1, eligible: false } } },
+    { id: "privacy-mismatch", dimensions: { aaCoding: { value: 100, confidence: 1, eligible: false } } },
   ]);
   assert.deepEqual(results.map((item) => item.id), ["available", "route-down", "privacy-mismatch"]);
 
@@ -250,13 +275,13 @@ test("returns profile- and dimension-level hard failures unranked, never as elig
 
 test("ranks by score, keeps stable tie order, and does not mutate profiles", () => {
   const profiles = [
-    { id: "middle", dimensions: { capability: 50 } },
-    { id: "high", dimensions: { capability: 90 } },
-    { id: "middle-two", dimensions: { capability: 50 } },
+    { id: "middle", dimensions: { aaCoding: 50 } },
+    { id: "high", dimensions: { aaCoding: 90 } },
+    { id: "middle-two", dimensions: { aaCoding: 50 } },
   ];
   const snapshot = structuredClone(profiles);
   const weights = Object.fromEntries(Object.keys(DEFAULT_WEIGHTS).map((key) => [key, 0]));
-  weights.capability = 100;
+  weights.aaCoding = 100;
   const results = scoreRecommendations(profiles, { weights });
   assert.deepEqual(results.map((item) => item.id), ["high", "middle", "middle-two"]);
   assert.deepEqual(results.map((item) => item.rank), [1, 2, 3]);

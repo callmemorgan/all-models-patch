@@ -1,8 +1,9 @@
 const DIMENSION_IDS = Object.freeze([
-  "capability",
+  "aaCoding",
+  "aaAgentic",
+  "aaIntelligence",
   "taste",
   "speed",
-  "publicRating",
   "reliability",
   "quota",
   "context",
@@ -11,10 +12,11 @@ const DIMENSION_IDS = Object.freeze([
 ]);
 
 export const DIMENSION_LABELS = Object.freeze({
-  capability: "Capability / task fit",
+  aaCoding: "Coding (AA)",
+  aaAgentic: "Agentic (AA)",
+  aaIntelligence: "Intelligence (AA)",
   taste: "Personal taste",
   speed: "Effective speed",
-  publicRating: "Public ratings",
   reliability: "Reliability",
   quota: "Quota headroom",
   context: "Context runway",
@@ -23,10 +25,11 @@ export const DIMENSION_LABELS = Object.freeze({
 });
 
 export const DEFAULT_WEIGHTS = Object.freeze({
-  capability: 22,
+  aaCoding: 16,
+  aaAgentic: 8,
+  aaIntelligence: 6,
   taste: 18,
   speed: 14,
-  publicRating: 8,
   reliability: 12,
   quota: 8,
   context: 8,
@@ -51,6 +54,30 @@ export function invalidWeights(message) {
   const error = new RangeError(message);
   error.statusCode = 400;
   return error;
+}
+
+/**
+ * Rewrite legacy recommendation weight keys without mutating the input.
+ * capability → aaCoding (sum + clamp on collision); publicRating is dropped.
+ * normalizeWeights stays strict and does not call this.
+ */
+export function migrateLegacyWeights(weights) {
+  if (!isPlainObject(weights)) return weights;
+
+  const result = { ...weights };
+  if (Object.hasOwn(result, "capability")) {
+    const legacy = result.capability;
+    delete result.capability;
+    if (Object.hasOwn(result, "aaCoding")) {
+      result.aaCoding = Math.min(100, Number(result.aaCoding) + Number(legacy));
+    } else {
+      result.aaCoding = legacy;
+    }
+  }
+  if (Object.hasOwn(result, "publicRating")) {
+    delete result.publicRating;
+  }
+  return result;
 }
 
 /**

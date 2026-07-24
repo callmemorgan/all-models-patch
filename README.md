@@ -258,8 +258,9 @@ snapshot, throttled to once per minute. If the helper or proxy is unavailable,
 the last sanitized cache remains visible with its original timestamp.
 
 The Recommendation view ranks the live `Agent()` roster using adjustable
-capability, personal taste, effective speed, public-rating, reliability, quota,
-context, coachability, and efficiency weights. Effective speed estimates time
+Artificial Analysis Coding, Agentic, and Intelligence indexes, personal taste,
+effective speed, reliability, quota, context, coachability, and efficiency
+weights. Effective speed estimates time
 to produce the requested output from TTFT and post-first-token throughput, then
 uses a logarithmic utility curve so unusually high token rates do not dominate
 the result. Missing evidence is confidence-shrunk to a neutral score rather

@@ -21,7 +21,7 @@ test("ships structured recommendation metadata for every agent profile", () => {
     confidence: 0.9,
     source: "personal-agent-guidance",
   });
-  assert.deepEqual(recommendations.profiles["gpt-5-3-codex-spark"].ratings.publicRating, {
+  assert.deepEqual(recommendations.profiles["gpt-5-3-codex-spark"].ratings.aaCoding, {
     value: null,
     confidence: 0,
     source: "not-rated",

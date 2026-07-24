@@ -459,10 +459,11 @@ export function renderDashboardHTML({ token, version = "local" } = {}) {
     "use strict";
     const API_TOKEN = ${safeToken};
     const WEIGHT_HELP = Object.freeze({
-      capability: "How strongly to favor your task-fit and capability evidence. Unknown ratings stay neutral and are confidence-adjusted.",
+      aaCoding: "Artificial Analysis Coding Index: agentic terminal engineering (Terminal-Bench) plus spec-to-code correctness (SciCode). Data: Artificial Analysis.",
+      aaAgentic: "Artificial Analysis Agentic Index: long-horizon tool use and deliverable production (GDPval-AA, τ³-Banking). Data: Artificial Analysis.",
+      aaIntelligence: "Artificial Analysis Intelligence Index: full composite including reasoning, knowledge, and hallucination resistance. Data: Artificial Analysis.",
       taste: "How strongly to favor your personal judgment of polish, product sense, and engineering taste.",
       speed: "Uses time to first token plus post-first-token throughput over a fixed ${SPEED_COMPARISON_OUTPUT_TOKENS}-token comparison, then applies diminishing returns.",
-      publicRating: "Uses only sourced numeric external ratings. Missing or rank-only evidence remains neutral.",
       reliability: "Uses valid completion share from the latest compatible raw benchmark, confidence-adjusted by sample count.",
       quota: "Uses the tightest applicable live quota window, reset timing, and the best available provider route.",
       context: "Softly scores usable pre-compaction runway and never excludes a profile. Agents compact and continue as needed.",

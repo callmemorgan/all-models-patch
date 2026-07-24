@@ -137,7 +137,7 @@ test("recommendation settings update rankings without mutating state", () => {
   const dashboard = loadDashboardState({ toolRoot: repoRoot, paths: state.paths, now: new Date("2026-07-20T20:01:00Z") });
   const result = recommendFromState(dashboard, {
     weights: {
-      capability: 0, taste: 100, speed: 0, publicRating: 0, reliability: 0,
+      aaCoding: 0, aaAgentic: 0, aaIntelligence: 0, taste: 100, speed: 0, reliability: 0,
       quota: 0, context: 0, coachability: 0, efficiency: 0,
     },
   }, new Date("2026-07-20T20:01:00Z"));
@@ -152,7 +152,10 @@ test("user presets are private, validated, and removable", () => {
   const preset = saveDashboardPreset(state.paths, {
     name: "My build mix",
     settings: {
-      weights: { capability: 10, taste: 10, speed: 10, publicRating: 10, reliability: 10, quota: 10, context: 10, coachability: 10, efficiency: 10 },
+      weights: {
+        aaCoding: 10, aaAgentic: 10, aaIntelligence: 10, taste: 10, speed: 10,
+        reliability: 10, quota: 10, context: 10, coachability: 10, efficiency: 10,
+      },
     },
   }, new Date("2026-07-20T20:00:00Z"));
   const path = join(state.paths.configDirectory, "dashboard-presets.json");
@@ -196,7 +199,46 @@ test("legacy saved presets load without exposing obsolete token fields", () => {
   })}\n`);
   const [preset] = readDashboardPresets(state.paths);
   assert.deepEqual(Object.keys(preset.settings), ["weights"]);
-  assert.equal(preset.settings.weights.capability > preset.settings.weights.taste, true);
+  assert.equal(preset.settings.weights.aaCoding > preset.settings.weights.taste, true);
+  assert.equal(Object.hasOwn(preset.settings.weights, "capability"), false);
+  assert.equal(Object.hasOwn(preset.settings.weights, "publicRating"), false);
+});
+
+test("legacy capability/publicRating preset weights migrate on load", () => {
+  const state = fixture();
+  mkdirSync(state.paths.configDirectory, { recursive: true, mode: 0o700 });
+  writeFileSync(join(state.paths.configDirectory, "dashboard-presets.json"), `${JSON.stringify({
+    schemaVersion: 1,
+    presets: [{
+      id: "123e4567-e89b-42d3-a456-426614174001",
+      name: "Legacy AA migration",
+      builtin: false,
+      settings: {
+        weights: { capability: 22, publicRating: 8, taste: 18 },
+      },
+    }],
+  })}\n`);
+  const [preset] = readDashboardPresets(state.paths);
+  assert.equal(Object.hasOwn(preset.settings.weights, "aaCoding"), true);
+  assert.equal(Object.hasOwn(preset.settings.weights, "capability"), false);
+  assert.equal(Object.hasOwn(preset.settings.weights, "publicRating"), false);
+  assert.equal(preset.settings.weights.aaCoding > 0, true);
+});
+
+test("direct recommend/save paths still reject legacy capability weights", () => {
+  const state = fixture();
+  const dashboard = loadDashboardState({ toolRoot: repoRoot, paths: state.paths, now: new Date("2026-07-20T20:01:00Z") });
+  assert.throws(
+    () => recommendFromState(dashboard, { weights: { capability: 100 } }, new Date("2026-07-20T20:01:00Z")),
+    (error) => error?.statusCode === 400 && /unknown recommendation weight/.test(error.message),
+  );
+  assert.throws(
+    () => saveDashboardPreset(state.paths, {
+      name: "Legacy keys should fail",
+      settings: { weights: { capability: 50, publicRating: 10 } },
+    }, new Date("2026-07-20T20:00:00Z")),
+    (error) => error?.statusCode === 400 && /unknown recommendation weight/.test(error.message),
+  );
 });
 
 test("quota refresh delegates to the credential-owning statusline helper", async () => {
