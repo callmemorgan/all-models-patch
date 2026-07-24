@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "releaseSequence": 9,
-  "managerVersion": "0.7.2",
+  "releaseSequence": 10,
+  "managerVersion": "0.8.0",
   "packs": [
     {
       "id": "darwin-arm64/2.1.197/8cc0c4d1e4eb1dca3b0cc92ab02ee3505de764e023f8c901761c167b72041fb8",

@@ -40,7 +40,7 @@ const aaLongFixtureOutput = Array.from({ length: 48 }, (_, index) => `${String(i
 
 test("benchmark slash command is packaged with the expected plugin version", () => {
   const manifest = JSON.parse(readFileSync(join(repoRoot, "plugin", ".claude-plugin", "plugin.json"), "utf8"));
-  assert.equal(manifest.version, "0.3.0");
+  assert.equal(manifest.version, "0.4.0");
   assert.match(readFileSync(join(repoRoot, "plugin", "commands", "benchmark.md"), "utf8"), /all-models-patch benchmark/);
   assert.match(readFileSync(join(repoRoot, "plugin", "commands", "benchmark.md"), "utf8"), /--fixture/);
   assert.match(readFileSync(join(repoRoot, "plugin", "commands", "benchmark.md"), "utf8"), /--compare-aa/);

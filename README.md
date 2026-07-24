@@ -223,6 +223,15 @@ identity, retries, and fixture compliance. The slash command
 `/claude-all-swarm:benchmark` invokes the same harness and does not require
 native agent teams.
 
+Three fixtures are available via `--fixture`: `raw-v1` (default, short
+calibration prompt), `aa-long-v1` (Artificial Analysis–shaped ~10k-token input
+with a fixed 48-line output and client-side time to first answer token), and
+`aa-story-v1` (same long input, free-form prose). Free-form fixtures rank
+cross-model speed on tokenizer-neutral visible characters per second, because
+identical text tokenizes to very different counts across providers.
+`--compare-aa <extract.json>` appends a local-versus-published comparison from
+a previously extracted Artificial Analysis dataset (no network access).
+
 Raw artifacts are written under
 `$XDG_STATE_HOME/all-models-patch/benchmarks/` (or
 `~/.local/state/all-models-patch/benchmarks/`). They contain sanitized usage and
@@ -246,9 +255,10 @@ browser. Press Ctrl-C in the launching terminal to stop it. The UI never loads
 scripts, fonts, or assets from the network.
 
 Model Cockpit joins the current named-agent and context configs with the latest
-compatible `raw-v1` benchmark for each concrete model, the sanitized
-`agents-statusline` provider-quota cache, and shipped structured recommendation
-metadata. It shows the provenance and freshness of every source. Provider OAuth
+compatible benchmark for each concrete model (preferring `aa-story-v1`, then
+`aa-long-v1`, then `raw-v1`; symlinked run directories are followed), the
+sanitized `agents-statusline` provider-quota cache, and shipped structured
+recommendation metadata. It shows the provenance and freshness of every source. Provider OAuth
 tokens, the proxy client key, prompts, generated benchmark text, and private
 repository data never enter the dashboard payload.
 
@@ -274,6 +284,22 @@ not modify the agent bundle or shipped evidence. Public ratings remain visibly
 unknown until a sourced numeric observation is added to
 `config/model-recommendations.json`—rank-only prose is never converted into an
 invented score.
+
+The same ranking is available on the command line:
+
+```bash
+all-models-patch recommend
+all-models-patch recommend --preset fast --exclude-provider claude
+all-models-patch recommend --preset deep --prefer-provider grok --json
+```
+
+Presets resolve through natural aliases (`fast`, `tasteful`, `efficient`,
+`deep`); bare invocation prints the preset menu with usage cues before the
+default balanced ranking. Provider controls come in three strengths:
+`--provider` restricts to a pool, `--exclude-provider` drops one, and
+`--prefer-provider` applies a visible, bounded sort bonus without changing the
+underlying scores. The slash command `/claude-all-swarm:recommend` wraps the
+same subcommand.
 
 ## Stable updates
 
