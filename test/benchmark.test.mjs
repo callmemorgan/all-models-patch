@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   BENCHMARK_FIXTURE_ID,
+  assertLoopbackProxyURL,
   buildClaudeArguments,
   buildRounds,
   buildSample,
@@ -188,7 +189,7 @@ test("end-to-end harness writes redacted artifacts and honors configured output"
     spawnClaude: async () => processResult(),
     fetch: async (url) => {
       const id = String(url).split("/").at(-1);
-      if (id === ids[1]) return response(404, {});
+      if (id === ids[1]) return notFoundResponse();
       return response(200, usageEnvelope(id));
     },
   });
@@ -199,6 +200,130 @@ test("end-to-end harness writes redacted artifacts and honors configured output"
     assert.equal(content.includes(fixtureOutput), false, `${name} retained output text`);
   }
 });
+
+test("proxy URL must be loopback because it carries the client key", () => {
+  for (const allowed of ["http://127.0.0.1:8317", "http://localhost:8317", "https://[::1]:8317"]) {
+    assert.equal(assertLoopbackProxyURL(allowed), allowed);
+  }
+  for (const rejected of ["https://attacker.example/proxy", "http://10.0.0.5:8317", "ftp://127.0.0.1"]) {
+    assert.throws(() => assertLoopbackProxyURL(rejected), /loopback|http or https/);
+  }
+  assert.throws(() => assertLoopbackProxyURL("not a url"), /not a valid URL/);
+});
+
+test("an inherited remote base URL never receives the proxy credential", async () => {
+  const home = benchmarkHome();
+  let fetchCalls = 0;
+  await assert.rejects(
+    runBenchmark(benchmarkOptions(home, { proxyBaseURL: "https://attacker.example/proxy" }), {
+      makeRunID: makeIDs(),
+      now: () => new Date("2026-07-20T12:00:00Z"),
+      progress: () => {},
+      spawnClaude: async () => processResult(),
+      fetch: async () => { fetchCalls += 1; return notFoundResponse(); },
+    }),
+    /loopback/,
+  );
+  assert.equal(fetchCalls, 0, "credential-bearing request was sent before the guard ran");
+});
+
+test("telemetry preflight rejects a proxy that does not implement the route", async () => {
+  const home = benchmarkHome();
+  await assert.rejects(
+    runBenchmark(benchmarkOptions(home), {
+      makeRunID: makeIDs(),
+      now: () => new Date("2026-07-20T12:00:00Z"),
+      progress: () => {},
+      spawnClaude: async () => processResult(),
+      fetch: async () => missingRouteResponse(),
+    }),
+    /not implemented by the proxy/,
+  );
+});
+
+test("a launcher that cannot spawn still yields a partial summary and exit 2", async () => {
+  const home = benchmarkHome();
+  const output = join(home, "artifacts");
+  const result = await runBenchmark(benchmarkOptions(home, { output }), {
+    makeRunID: makeIDs(),
+    now: () => new Date("2026-07-20T12:00:00Z"),
+    progress: () => {},
+    spawnClaude: async () => { throw new Error("spawn ENOENT"); },
+    fetch: async (url) => {
+      const id = String(url).split("/").at(-1);
+      return id === ids[1] ? notFoundResponse() : response(200, usageEnvelope(id));
+    },
+  });
+  assert.equal(result.exitCode, 2);
+  assert.match(result.summary.aborted, /spawn ENOENT/);
+  assert.match(readFileSync(join(output, "summary.json"), "utf8"), /spawn ENOENT/);
+  assert.match(result.markdown, /Run aborted/);
+});
+
+test("a malformed telemetry record fails only its own sample", async () => {
+  const home = benchmarkHome();
+  const output = join(home, "artifacts");
+  const result = await runBenchmark(benchmarkOptions(home, { output }), {
+    makeRunID: makeIDs(),
+    now: () => new Date("2026-07-20T12:00:00Z"),
+    progress: () => {},
+    spawnClaude: async () => processResult(),
+    fetch: async (url) => {
+      const id = String(url).split("/").at(-1);
+      if (id === ids[1]) return notFoundResponse();
+      return response(200, { schema_version: 1, benchmark_id: id, records: [null] });
+    },
+  });
+  assert.equal(result.exitCode, 2);
+  assert.equal(result.summary.aborted, null, "one bad payload aborted the whole run");
+  assert.equal(result.summary.sampleCount, 1);
+  assert.equal(existsSync(join(output, "summary.json")), true);
+});
+
+test("a response that does not reproduce the fixture is excluded from the distributions", () => {
+  const sample = buildSample({
+    runID: ids[0],
+    benchmarkID: ids[1],
+    agentName: "alpha",
+    configuredModel: "alias",
+    phase: "measured",
+    round: 1,
+    ordinal: 1,
+    processResult: { ...processResult(), formatOK: false },
+    usage: usageEnvelope(ids[1]),
+    timestamp: new Date("2026-07-20T12:00:00Z"),
+  });
+  assert.equal(sample.valid, false);
+  assert(sample.excludedReasons.includes("format_failed"));
+});
+
+function benchmarkHome() {
+  const home = mkdtempSync(join(tmpdir(), "benchmark-test-"));
+  const proxyDirectory = join(home, ".cli-proxy-api");
+  mkdirSync(proxyDirectory, { recursive: true });
+  writeFileSync(join(proxyDirectory, "client-key"), "test-key\n");
+  writeFileSync(join(proxyDirectory, "claude-all-agents.json"), JSON.stringify({ alpha: { model: "alias" } }));
+  return home;
+}
+
+function benchmarkOptions(home, overrides = {}) {
+  return {
+    home,
+    localBin: join(home, ".local", "bin"),
+    stateDirectory: join(home, ".local", "state", "all-models-patch"),
+    output: join(home, "artifacts"),
+    warmups: 0,
+    runs: 1,
+    agents: null,
+    seed: "seed",
+    ...overrides,
+  };
+}
+
+function makeIDs() {
+  let index = 0;
+  return () => ids[index++];
+}
 
 function processResult() {
   return {
@@ -239,4 +364,14 @@ function usageEnvelope(id) {
 
 function response(status, body) {
   return { status, ok: status >= 200 && status < 300, json: async () => body };
+}
+
+// What the proxy returns for a valid but unknown benchmark id: the route
+// exists. A proxy without the route aborts with 404 and an empty body.
+function notFoundResponse() {
+  return response(404, { error: "benchmark usage not found" });
+}
+
+function missingRouteResponse() {
+  return { status: 404, ok: false, json: async () => { throw new SyntaxError("Unexpected end of JSON input"); } };
 }

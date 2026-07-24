@@ -84,9 +84,13 @@ export async function runBenchmark(options, dependencies = {}) {
   const outputDirectory = options.output ?? join(options.stateDirectory, "benchmarks", `${safeTimestamp(startedAt)}-${runID}`);
   mkdirSync(outputDirectory, { recursive: true, mode: 0o700 });
   const samplesPath = join(outputDirectory, "samples.jsonl");
-  const proxyBaseURL = String(options.proxyBaseURL ?? process.env.ANTHROPIC_BASE_URL ?? "http://127.0.0.1:8317").replace(/\/+$/, "");
+  const proxyBaseURL = assertLoopbackProxyURL(
+    String(options.proxyBaseURL ?? process.env.ANTHROPIC_BASE_URL ?? "http://127.0.0.1:8317").replace(/\/+$/, ""),
+  );
   await verifyTelemetryEndpoint(proxyBaseURL, clientKey, deps.fetch, deps.makeRunID());
   const sampleStream = createWriteStream(samplesPath, { flags: "wx", mode: 0o600 });
+  let streamFailure = null;
+  sampleStream.on("error", (error) => { streamFailure ??= error; });
 
   const temporaryDirectory = mkdtempSync(join(tmpdir(), "claude-all-benchmark-"));
   const samples = [];
@@ -99,6 +103,7 @@ export async function runBenchmark(options, dependencies = {}) {
   process.on("SIGINT", interrupt);
   process.on("SIGTERM", interrupt);
 
+  let aborted = null;
   try {
     const rounds = buildRounds(selectedAgents.map(([name]) => name), options.warmups, options.runs, seed);
     const total = rounds.reduce((count, round) => count + round.agents.length, 0);
@@ -110,17 +115,28 @@ export async function runBenchmark(options, dependencies = {}) {
         const configuredModel = agentBundle[agentName].model;
         const benchmarkID = deps.makeRunID();
         deps.progress(`[${ordinal}/${total}] ${round.phase} ${agentName} (${configuredModel})`);
-        const processResult = await deps.spawnClaude({
-          launcher,
-          cwd: temporaryDirectory,
-          agent: agentName,
-          benchmarkID,
-          prompt: BENCHMARK_PROMPT,
-          environment: process.env,
-          clock: deps.clock,
-          onChild: (child) => { activeChild = child; },
-        });
+        let processResult;
+        try {
+          processResult = await deps.spawnClaude({
+            launcher,
+            cwd: temporaryDirectory,
+            agent: agentName,
+            benchmarkID,
+            prompt: BENCHMARK_PROMPT,
+            environment: process.env,
+            clock: deps.clock,
+            onChild: (child) => { activeChild = child; },
+          });
+        } catch (error) {
+          activeChild = null;
+          aborted = `could not run ${launcher}: ${error.message}`;
+          break;
+        }
         activeChild = null;
+        if (streamFailure) {
+          aborted = `could not write ${samplesPath}: ${streamFailure.message}`;
+          break;
+        }
         let usage;
         if (interrupted) {
           usage = { schema_version: 1, benchmark_id: benchmarkID, records: [], error: "benchmark interrupted" };
@@ -144,16 +160,24 @@ export async function runBenchmark(options, dependencies = {}) {
           timestamp: deps.now(),
         });
         samples.push(sample);
-        await writeJSONLine(sampleStream, sample);
+        try {
+          await writeJSONLine(sampleStream, sample);
+        } catch (error) {
+          aborted = `could not write ${samplesPath}: ${error.message}`;
+          break;
+        }
       }
-      if (interrupted) break;
+      if (interrupted || aborted) break;
     }
   } finally {
     process.off("SIGINT", interrupt);
     process.off("SIGTERM", interrupt);
-    await closeStream(sampleStream);
+    // The stream carries its own error listener, so a close failure is already
+    // recorded in streamFailure; never let it mask the partial-result summary.
+    await closeStream(sampleStream).catch((error) => { streamFailure ??= error; });
     rmSync(temporaryDirectory, { recursive: true, force: true });
   }
+  if (!aborted && streamFailure) aborted = `could not write ${samplesPath}: ${streamFailure.message}`;
 
   const summary = summarizeRun({
     runID,
@@ -165,6 +189,7 @@ export async function runBenchmark(options, dependencies = {}) {
     selectedAgents,
     samples,
     interrupted,
+    aborted,
   });
   writeFileSync(join(outputDirectory, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`, { mode: 0o600 });
   const markdown = formatBenchmarkMarkdown(summary);
@@ -367,6 +392,9 @@ export function buildSample({ runID, benchmarkID, agentName, configuredModel, ph
   if (!selected || selected.failed) reasons.push("generation_failed");
   if (outputTokens < 512) reasons.push("short_output");
   if (!(decodeWindowMS > 0)) reasons.push("invalid_timing");
+  // A response that does not reproduce the fixture exactly did different work,
+  // so its timings are not comparable and must stay out of the distributions.
+  if (!processResult.formatOK) reasons.push("format_failed");
   const valid = phase === "measured" && reasons.length === 0;
   return {
     schemaVersion: BENCHMARK_SCHEMA_VERSION,
@@ -416,7 +444,7 @@ export function buildSample({ runID, benchmarkID, agentName, configuredModel, ph
   };
 }
 
-export function summarizeRun({ runID, seed, startedAt, completedAt, outputDirectory, options, selectedAgents, samples, interrupted }) {
+export function summarizeRun({ runID, seed, startedAt, completedAt, outputDirectory, options, selectedAgents, samples, interrupted, aborted = null }) {
   const agents = selectedAgents.map(([name, configuredModel]) => {
     const measured = samples.filter((sample) => sample.agent === name && sample.phase === "measured");
     const valid = measured.filter((sample) => sample.valid);
@@ -440,7 +468,7 @@ export function summarizeRun({ runID, seed, startedAt, completedAt, outputDirect
     };
   });
   agents.sort((a, b) => (b.postFirstTokenTPS.p50 ?? -1) - (a.postFirstTokenTPS.p50 ?? -1));
-  const incomplete = interrupted || agents.some((agent) => agent.validSamples === 0);
+  const incomplete = interrupted || Boolean(aborted) || agents.some((agent) => agent.validSamples === 0);
   return {
     schemaVersion: BENCHMARK_SCHEMA_VERSION,
     runID,
@@ -451,6 +479,7 @@ export function summarizeRun({ runID, seed, startedAt, completedAt, outputDirect
     outputDirectory,
     defaults: { warmups: options.warmups, runs: options.runs, serial: true },
     interrupted,
+    aborted,
     sampleCount: samples.length,
     agents,
     exitCode: incomplete ? 2 : 0,
@@ -473,7 +502,29 @@ export function formatBenchmarkMarkdown(summary) {
     lines.push(`| ${agent.name} | ${agent.routes.join(", ") || "—"} | ${agent.validSamples}/${agent.measuredSamples} | ${formatPair(agent.ttftMS, " ms")} | ${formatPair(agent.postFirstTokenTPS)} | ${formatPair(agent.endToEndTPS)} | ${agent.formatPasses}/${agent.measuredSamples} | ${agent.retries} |`);
   }
   if (summary.interrupted) lines.push("", "Run interrupted; artifacts contain partial results.");
+  if (summary.aborted) lines.push("", `Run aborted: ${summary.aborted}. Artifacts contain partial results.`);
   return lines.join("\n");
+}
+
+// The proxy is trusted with the client key, so it must be local. Without this
+// an inherited ANTHROPIC_BASE_URL would send the credential to any host.
+export function assertLoopbackProxyURL(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`benchmark proxy URL is not a valid URL: ${value}`);
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error(`benchmark proxy URL must use http or https: ${value}`);
+  }
+  const host = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  if (host !== "127.0.0.1" && host !== "::1" && host !== "localhost") {
+    throw new Error(
+      `benchmark proxy URL must be loopback because it receives the proxy client key: ${value}`,
+    );
+  }
+  return value;
 }
 
 async function verifyTelemetryEndpoint(baseURL, clientKey, fetchImpl, unknownID) {
@@ -483,23 +534,51 @@ async function verifyTelemetryEndpoint(baseURL, clientKey, fetchImpl, unknownID)
   if (response.status !== 404) {
     throw new Error(`benchmark telemetry preflight failed: expected HTTP 404, received ${response.status}`);
   }
+  // A proxy without the route answers 404 with an empty body, so a bare status
+  // check proves nothing; every sample would then poll the full window and time
+  // out. The route's own not-found payload is the signal that it exists.
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+  const reported = typeof payload?.error === "string" ? payload.error.toLowerCase() : "";
+  if (!reported.includes("benchmark usage")) {
+    throw new Error(
+      `benchmark telemetry endpoint is not implemented by the proxy at ${baseURL}: ` +
+      "the unknown-id probe did not return the benchmark usage not-found payload",
+    );
+  }
 }
 
 async function pollBenchmarkUsage(baseURL, clientKey, benchmarkID, fetchImpl) {
   const deadline = performance.now() + 10_000;
   let delayMS = 100;
   while (true) {
-    const response = await fetchImpl(`${baseURL}/v1/benchmark/usage/${benchmarkID}`, {
-      headers: { Authorization: `Bearer ${clientKey}` },
-    });
-    if (response.ok) {
+    let response = null;
+    try {
+      response = await fetchImpl(`${baseURL}/v1/benchmark/usage/${benchmarkID}`, {
+        headers: { Authorization: `Bearer ${clientKey}` },
+      });
+    } catch (error) {
+      // A reset or refused connection is transient; fall through to the
+      // backoff below and keep using the retry window.
+      if (performance.now() >= deadline) {
+        throw new Error(`benchmark telemetry request failed for ${benchmarkID}: ${error.message}`);
+      }
+    }
+    if (response?.ok) {
       const payload = await response.json();
-      if (payload.schema_version !== 1 || payload.benchmark_id !== benchmarkID || !Array.isArray(payload.records)) {
+      if (payload.schema_version !== 1 || payload.benchmark_id !== benchmarkID || !Array.isArray(payload.records)
+          || !payload.records.every((record) => record !== null && typeof record === "object")) {
         throw new Error(`invalid benchmark telemetry response for ${benchmarkID}`);
       }
       return payload;
     }
-    if (response.status !== 404) throw new Error(`benchmark telemetry request failed with HTTP ${response.status}`);
+    if (response && response.status !== 404) {
+      throw new Error(`benchmark telemetry request failed with HTTP ${response.status}`);
+    }
     if (performance.now() >= deadline) throw new Error(`timed out waiting for benchmark telemetry ${benchmarkID}`);
     await new Promise((resolvePromise) => setTimeout(resolvePromise, delayMS));
     delayMS = Math.min(1000, delayMS * 2);
